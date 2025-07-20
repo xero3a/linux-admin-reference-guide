@@ -1,0 +1,20 @@
+# Vim / Neovim
+*.swp
+*.swo
+*.bak
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs and dumps
+*.log
+*.out
+
+# Secrets or local configs (if you ever add these)
+*.env
+*.local
+
+# VirtualBox shared folders (if used)
+__MACOSX/
+
