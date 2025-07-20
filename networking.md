@@ -19,3 +19,21 @@ These commands were used to inspect the network status of the system:
 
 > These tools help ensure connectivity is established and confirm what services (if any) are exposed.
 
+
+## Configuring Network Interfaces
+
+- Use `nmtui` (Network Manager Text User Interface) for interactive network configuration.
+- To view all interfaces and their status:
+  ```bash
+  nmcli device status
+- Bringing an interface up/down
+  ~ sudo ip link set <interface> up
+  ~ sudo ip link set <interface> down
+- Assigning a static IP address (temporarily)
+  ~ sudo ip addr add <IP_address>/<prefix_length> dev <interface>
+- Deleting a static IP address from interface
+  ~ sudo ip addr del <IP_adress>/<prefix_length> dev <interface>
+- Permanent network configuration performed by the following actions:
+  a. /etc/sysconfig/network-scripts
+  b. nmcli
+
