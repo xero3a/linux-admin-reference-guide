@@ -22,6 +22,8 @@ This document outlines the system security measures implemented during the Linux
   ~ ssh-keygen -t ed25519
 - SSH public key added to GitHub via web UI
 
+
+
 ## Firewall Configuration
 
 Configured `firewalld` as the primary firewall management tool.
@@ -47,6 +49,8 @@ Configured `firewalld` as the primary firewall management tool.
 - Opening ports
   ~ sudo firewall-cmd --zone=public --add-port=8080/tcp
 
+
+
 ## User and Group Management
 - Created non-root user accounts using:
   ```bash
@@ -65,6 +69,7 @@ Configured `firewalld` as the primary firewall management tool.
   ~ sudo usermod -U <username>
 
 
+
 ## SSH Hardening
 - Disabled root login over SSH to prevent direct root access:
   ```bash
@@ -81,6 +86,8 @@ Configured `firewalld` as the primary firewall management tool.
 - Copied public key to authorized keys
   ~ ssh-copy-id user@hostname
 - Verified SSH login works without password
+
+
 
 ## SELinux Advanced Tips
 
@@ -108,7 +115,16 @@ Configured `firewalld` as the primary firewall management tool.
 
 
 ## Service Hardening
-...
+- Listed all enabled services:
+  ```bash
+  ~ sudo systemctl list-unit-files --state=enabled
+- Disable unnecessary service
+  ~ sudo systemctl disable <service>
+  ~ sudo systemctl stop <service>
+- Verified firewall rules to block unwanted service ports
+- Regularly check active services to ensure only needed daemons are available
+
+
 
 ## Log Auditing
 ...
