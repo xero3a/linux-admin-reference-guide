@@ -127,5 +127,21 @@ Configured `firewalld` as the primary firewall management tool.
 
 
 ## Log Auditing
-...
+- `auditd` provides detailed logging of system calls and security-relevant events.
+
+- Install auditd if not already installed:
+  ```bash
+  ~sudo dnf install audit -y
+- Enable and starting auditd
+  ~ sudo systemctl enable auditd
+  ~ sudo systemctl start auditd
+- Verify auditd status
+  ~ sudo systemctl status auditd.service
+- View audit logs
+  ~ sudo ausearch -m avc
+  ~ sudo ausearch -ts recent
+- Manipulate audit rules dynamically
+  a. auditctl
+  b. /etc/audit/audit.rules
+
 
