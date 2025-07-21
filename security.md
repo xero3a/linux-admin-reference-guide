@@ -36,10 +36,13 @@ Configured `firewalld` as the primary firewall management tool.
 # Basic usage
 - Checking Status
   ~ sudo firewall-cmd --state
+  ~ sudo systemctl status firewalld
 - Viewing default zones
   ~ sudo firewall-cmd --get-default-zone
 - List active zones and rules
   ~ sudo firewall-cmd --list-all-zones
+  ~ sudo firewall-cmd --get-zones
+  ~ sudo firewall-cmd --get-active-zones
 
 # Common Tasks
 - Add a service (permanent)
@@ -48,6 +51,13 @@ Configured `firewalld` as the primary firewall management tool.
   ~ firewall-cmd --reload
 - Opening ports
   ~ sudo firewall-cmd --zone=public --add-port=8080/tcp
+- Allowing necessary services
+  ~ sudo firewall-cmd --permanent --add-service=ssh
+  ~ sudo firewall-cmd --permanent --add-service=http
+- Removing unnecesssary services
+  ~ sudo firewall-cmd --permanent --remove -service=dhcpv6-client
+  ~ sudo firewall-cmd --reload
+  ~ sudo firewall-cmd --list-all
 
 
 
