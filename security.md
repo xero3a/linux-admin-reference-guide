@@ -82,6 +82,31 @@ Configured `firewalld` as the primary firewall management tool.
   ~ ssh-copy-id user@hostname
 - Verified SSH login works without password
 
+## SELinux Advanced Tips
+
+- SELinux enforces Mandatory Access Control (MAC) policies, restricting what processes can do.
+- Common modes:
+  - **Enforcing:** SELinux policy is enforced.
+  - **Permissive:** Logs actions that would be denied but does not block them.
+  - **Disabled:** SELinux is off.
+
+- Check current mode:
+  ```bash
+  ~ sestatus
+- Temporarily set permissive mode
+  ~ sudo setenforce 0
+- Permanently change mode, edit /etc/selinux/config
+  ~ SELINUX=enforcing
+- Use audit2allow to analyze denied actions and generate policy modules
+  ~ sudo ausearch -m AVC,USER_AVC -ts recent
+  ~ sudo auditallow -M mypol
+  ~ semodule -i mypol.pp
+- Troubleshooting
+  a. check /var/log/audit/audit.log
+  b. check /var/log/messages
+
+
+
 ## Service Hardening
 ...
 
