@@ -4,7 +4,7 @@ This document outlines the system security measures implemented during the Linux
 
 ---
 
-## SELinux Status
+##### SELinux Status
 
 - SELinux is enabled and set to **enforcing** mode.
 - Configuration checked with:
@@ -24,7 +24,7 @@ This document outlines the system security measures implemented during the Linux
 
 
 
-## Firewall Configuration
+##### Firewall Configuration
 
 Configured `firewalld` as the primary firewall management tool.
 
@@ -61,7 +61,7 @@ Configured `firewalld` as the primary firewall management tool.
 
 
 
-## User and Group Management
+##### User and Group Management
 - Created non-root user accounts using:
   ```bash
   ~ sudo adduser <username>
@@ -80,7 +80,7 @@ Configured `firewalld` as the primary firewall management tool.
 
 
 
-## SSH Hardening
+##### SSH Hardening
 - Disabled root login over SSH to prevent direct root access:
   ```bash
   ~ sudo nano /etc/ssh/sshd_config
@@ -99,7 +99,7 @@ Configured `firewalld` as the primary firewall management tool.
 
 
 
-## SELinux Advanced Tips
+##### SELinux Advanced Tips
 
 - SELinux enforces Mandatory Access Control (MAC) policies, restricting what processes can do.
 - Common modes:
@@ -122,9 +122,34 @@ Configured `firewalld` as the primary firewall management tool.
   a. check /var/log/audit/audit.log
   b. check /var/log/messages
 
+# Custom SELinux Policy Module
+
+In some cases, default SELinux policies do not permit required operations. A custom policy can be written and installed to allow specific actions.
+
+- Created a policy source file:
+    ```bash
+  ~ nano mypol.te
+- Contents of `mypol.te`:
+    ~ module mypol 1.0;
+
+    require {
+        type ssh_port_t;
+        class tcp_socket name_bind;
+    }
+
+    allow ssh_port_t self:tcp_socket name_bind;
+- Compiled the module:
+  ~ checkmodule -M -m -o mypol.mod mypol.te
+- Created the policy package:
+  ~ semodule_package -o mypol.pp -m mypol.mod
+- Installed the policy:
+  ~ semodule -i mypol.pp
+
+This approach can be expanded to handle other denials by inspecting logs (e.g., using `audit2allow`)
 
 
-## Service Hardening
+
+##### Service Hardening
 - Listed all enabled services:
   ```bash
   ~ sudo systemctl list-unit-files --state=enabled
@@ -136,7 +161,7 @@ Configured `firewalld` as the primary firewall management tool.
 
 
 
-## Log Auditing
+##### Log Auditing
 - `auditd` provides detailed logging of system calls and security-relevant events.
 
 - Install auditd if not already installed:
@@ -156,7 +181,7 @@ Configured `firewalld` as the primary firewall management tool.
 
 
 
-## Intrusion Detection (AIDE)
+##### Intrusion Detection (AIDE)
 - AIDE (Advanced Intrusion Detection Environment) is a host-based intrusion detection system that 
   creates a database of files and their attributes. It can detect unauthorized changes to the 
   system by comparing the current state with the baseline.
@@ -176,3 +201,37 @@ Configured `firewalld` as the primary firewall management tool.
 # Automate AIDE Checks
   ~ crontab -e
   ~ 0 1 * * * /usr/sbin/aide --check
+
+
+
+##### Port Scanning & Enumeration Defense
+
+Attackers often begin with reconnaissance, using tools like `nmap` to discover open ports and services. Hardening the system against such scans is a key part of proactive security.
+
+# Reduce Open Ports
+
+Keep only necessary services running and listening:
+```bash
+  ~ ss -tuln  # View listening ports
+  ~ systemctl stop <service>
+  ~ systemctl disable <service>
+
+- Limiting firewalld Exposure
+# Allow SSH only from a trusted IP
+  ~ sudo firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="192.168.1.100" service name="ssh" accept'
+  ~ sudo firewall-cmd --reload
+
+- TCP/IP Stack Hardening
+  ~ nano /etc/sysctl.conf
+
+# Ignore ICMP (ping) requests
+  ~ net.ipv4.icmp_echo_ignore_all = 1
+
+# Drop malformed packets and prevent IP spoofing
+  ~ net.ipv4.conf.all.rp_filter = 1
+  ~ net.ipv4.conf.default.rp_filter = 1
+  ~ net.ipv4.conf.all.accept_source_route = 0
+- Apply changes
+  ~ sudo sysctl -p
+
+
