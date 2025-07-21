@@ -37,3 +37,25 @@ These commands were used to inspect the network status of the system:
   a. /etc/sysconfig/network-scripts
   b. nmcli
 
+## Firewall Configuration (firewalld)
+
+RHEL 9 uses `firewalld` as its default firewall management tool.
+
+# Check firewalld status (start & enable)
+```bash
+  ~ sudo systemctl status firewalld
+  ~ sudo systemctl start firewalld
+  ~ sudo systemctl enable firewalld
+
+# View default and active zones
+  ~ firewall-cmd --get-default-zone
+  ~ firewall-cmd --get-active-zones
+
+# List current rules for a zone
+  ~ furewall-cmd --zone=public --list-all
+  ~ sudo firewall-cmd --zone-public --ass-service=ssh --permanent
+  sudo firewall-cmd --reload
+
+# Opening ports
+  ~ firewall-cmd --zone=public --add-port=8080/tcp --permanent
+  ~ firewall-cmd --reload
