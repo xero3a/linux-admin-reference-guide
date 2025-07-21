@@ -155,3 +155,24 @@ Configured `firewalld` as the primary firewall management tool.
   b. /etc/audit/audit.rules
 
 
+
+## Intrusion Detection (AIDE)
+- AIDE (Advanced Intrusion Detection Environment) is a host-based intrusion detection system that 
+  creates a database of files and their attributes. It can detect unauthorized changes to the 
+  system by comparing the current state with the baseline.
+# Installation
+  ~ sudo dnf install aide
+# Initialization
+- Create Database
+  ~ aide --init
+- Moved to proper directory
+  ~ mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.bd.gz
+# Manual Checks
+- Verifying baseline changes
+  ~ aide --check
+# Database Updates
+  ~ aide --update
+  ~ mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+# Automate AIDE Checks
+  ~ crontab -e
+  ~ 0 1 * * * /usr/sbin/aide --check
