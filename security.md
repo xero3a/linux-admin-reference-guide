@@ -22,7 +22,7 @@ This document outlines the system security measures implemented during the Linux
   ~ ssh-keygen -t ed25519
 - SSH public key added to GitHub via web UI
 
-# Firewall Configuration
+## Firewall Configuration
 
 Configured `firewalld` as the primary firewall management tool.
 
@@ -45,4 +45,32 @@ Configured `firewalld` as the primary firewall management tool.
 - Applying changes
   ~ firewall-cmd --reload
 - Opening ports
-  ~ sudo firewall-cmd --zone=public --add-port=8080
+  ~ sudo firewall-cmd --zone=public --add-port=8080/tcp
+
+## User and Group Management
+- Created non-root user accounts using:
+  ```bash
+  ~ sudo adduser <username>
+- Set password for users
+  ~ sudo passwd <username>
+- Added users/groups for permission management
+  ~ sudo usermod -aG <group> <username>
+- Verify user group assignments
+  ~ groups <username>
+- Managed privileges by editing sudoers file:
+  ~ sudo visudo
+  # User added to wheel group
+- Locked and disabled user accounts when necessary
+  ~ sudo usermod -L <username>
+  ~ sudo usermod -U <username>
+
+
+## SSH Hardening
+...
+
+## Service Hardening
+...
+
+## Log Auditing
+...
+
