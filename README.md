@@ -12,7 +12,7 @@ document real-world tasks doe my Linux career portfolio.
 
 ----------------------------------------------------------------------------------------------
 
-###################            My Achievements            ###################
+###################            Current Milestones            ###################
 
 1)    Installation & System Setup
             -  Downloaded the official DVD.iso for RHEL 9 (x86_64 architecture)
