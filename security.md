@@ -66,7 +66,21 @@ Configured `firewalld` as the primary firewall management tool.
 
 
 ## SSH Hardening
-...
+- Disabled root login over SSH to prevent direct root access:
+  ```bash
+  ~ sudo nano /etc/ssh/sshd_config
+  # Set: PermitRootLogin no
+- Disable pasword authentication to enfore key-based login
+  ~ sudo nano /etc/ssh/sshd_config
+  # Set: PasswordAuthentication no
+- Ensure only public key authentication is allowed
+- Reload SSH target service
+  ~ sudo systemctl reload sshd
+- Created SSH key pair using secure alghorithm
+  ~ ssh-keygen -t ed25519 -C "user.email@example.com"
+- Copied public key to authorized keys
+  ~ ssh-copy-id user@hostname
+- Verified SSH login works without password
 
 ## Service Hardening
 ...
