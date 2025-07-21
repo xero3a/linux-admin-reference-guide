@@ -22,3 +22,27 @@ This document outlines the system security measures implemented during the Linux
   ~ ssh-keygen -t ed25519
 - SSH public key added to GitHub via web UI
 
+# Firewall Configuration
+
+Configured `firewalld` as the primary firewall management tool.
+
+# Installation & Enablement
+```bash
+  ~ sudo dnf install firewalld -y
+  ~ sudo systemctl enable firewalld
+  ~ sudo systemctl start firewalld
+# Basic usage
+- Checking Status
+  ~ sudo firewall-cmd --state
+- Viewing default zones
+  ~ sudo firewall-cmd --get-default-zone
+- List active zones and rules
+  ~ sudo firewall-cmd --list-all-zones
+
+# Common Tasks
+- Add a service (permanent)
+  ~ sudo firewall-cmd --zone=public --add-service=ssh --permanent
+- Applying changes
+  ~ firewall-cmd --reload
+- Opening ports
+  ~ sudo firewall-cmd --zone=public --add-port=8080
