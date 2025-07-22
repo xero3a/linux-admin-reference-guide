@@ -26,3 +26,23 @@ Restricts file deletion within a directory to the file's owner or root
 sudo chmod +t /path/to/dir
 
 
+### Password Policies and Expiration
+
+Managing password aging helps enforce regular password changes, improving security.
+
+- View current settings for a user:
+  ```bash
+  chage -l johndoe
+- Password Expiration Policy
+sudo chage -M 90 user
+- Set warning period before   expiration
+sudo chage -W 7 user
+- Lock account # days before expiration
+sudo chage -I 14 user
+- System-wide password policies
+  a. /etc/login.defs
+sudo nano /etc/login.defs
+~ PASS_MAX_DAYS 90
+~ PASS_MIN_DAYS 0
+~ PASS_WARN_AGE 7
+
