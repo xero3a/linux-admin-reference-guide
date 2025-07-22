@@ -108,6 +108,10 @@ sudo visudo
 user ALL=(ALL) ALL	# ALL= execute any command: (ALL)=as any user: ALL=from any host
 ~ :wq 
 $ sudo whoami		# verifies user has been added to sudoers file
+- Granting Limited Command Access
+$ sudo visudo
+~ Cmnd_Alias NETWORK_CMDS = /usr/sbin/ip, /bin/ping
+~ netadmin ALL=(ALL) NETWORK_CMDS
 - Granting sudo Access to a Group
 sudo usermod -aG wheel user
 sudo visudo 
