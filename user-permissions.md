@@ -69,8 +69,12 @@ sudo groupdel group_name
 - Changing File Ownership
 sudo chown username file.txt
 sudo chown user:group file.txt
+- Recursive Changes
+sudo chown -R sleepy:admin /home/user/
 - Changing Group Ownership
 sudo chgrp groupname file.txt
+- Recursive Group Changes
+sudo chgrp -R group /dir/to/be_changed
 - Changing Permissions
 chmod u+x script.sh	# gives user execute permissions
 chmod g-w file.txt	# remove write from group
@@ -78,6 +82,8 @@ chmod o=r file.txt	# set "others" to read-only
 - Numeric Notation
 chmod 755 script.sh	# rwxr-xr-x
 chmod 644 file.txt	# rw-r--r--
+- Recursive application to a Directory
+chmod -R 744 /path/to/dir
 - Setting default Permissions
 umask
 - Setting a new umask (current session)
