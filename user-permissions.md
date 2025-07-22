@@ -2,7 +2,10 @@
 
 ## Best Practices for Users, Groups, Sudoers, and File Permissions
 
-This section outlines essential system administration practices for managing users and groups, configuring sudo privileges securely, and setting appropriate file and directory permissions. Following these guidelines helps ensure system access is controlled, auditable, and aligned with security standards.
+This section outlines essential system administration practices for managing users and 
+groups, configuring sudo privileges securely, and setting appropriate file and directory 
+permissions. Following these guidelines helps ensure system access is controlled, auditable, and 
+aligned with security standards.
 
 ### User Management
 
@@ -96,6 +99,7 @@ nano ~/.bash_profile
 
 
 # Special Permissions
+- Set SUID
 - SetGID on a directory
 chmod g+s /shared_dir
 chmod +t /shared_dir
