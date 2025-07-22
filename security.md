@@ -235,3 +235,33 @@ Keep only necessary services running and listening:
   ~ sudo sysctl -p
 
 
+##### Fail2Ban Intrusion Prevention
+
+Fail2Ban is a log-parsing tool that monitors system logs for patterns of failed login attempts and blocks the offending IP addresses via firewall rules.
+
+# Installation
+- Fail2Ban can be installed from the EPEL repository:
+  ~ sudo dnf install fail2ban fail2ban-firewalld -y
+- Enable and Start service
+  ~ sudo systemctl enable --now fail2ban
+# Basic Configuration
+- Default config file /etc/fail2ban/jail/locl
+  ```bash
+  ~ [sshd]
+	enabled = true
+	port    = ssh
+	filter  = sshd
+	logpath = /var/log/secure
+	maxretry = 5
+	bantime = 3600
+# Firewalld Integration
+- Verify service is active
+  ~ nano	
+	banaction = firewallcmd-rich-rules
+	backend = systemd
+- Restart Service
+  ~ systemctl restart fail2ban
+#  Monitoring
+- Verifying status
+  ~ fail2ban-client status sshd
+
