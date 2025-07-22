@@ -82,6 +82,12 @@ chmod 644 file.txt	# rw-r--r--
 umask
 - Setting a new umask (current session)
 umask 027
+- Adding persistence to a user 
+nano ~/.bashrc 
+...or...
+nano ~/.bash_profile
+~ echo 'umask 027' >> ~/.bashrc
+
 
 # Special Permissions
 - SetGID on a directory
