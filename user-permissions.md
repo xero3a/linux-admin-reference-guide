@@ -46,3 +46,6 @@ sudo nano /etc/login.defs
 ~ PASS_MIN_DAYS 0
 ~ PASS_WARN_AGE 7
 
+
+
+### Securing User Data with Permissions
