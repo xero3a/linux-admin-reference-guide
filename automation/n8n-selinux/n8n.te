@@ -1,0 +1,15 @@
+module n8n 1.0;
+
+require {
+    type container_t;
+    type container_runtime_t;
+    type http_port_t;
+    class tcp_socket name_bind;
+}
+
+# Allow container processes to bind to HTTP ports (e.g., 5678)
+allow container_t http_port_t:tcp_socket name_bind;
+
+# If you run Podman/Docker with container_runtime_t
+allow container_runtime_t http_port_t:tcp_socket name_bind;
+# This grants permission for containers to bind to TCP 5678

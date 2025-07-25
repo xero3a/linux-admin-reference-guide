@@ -57,7 +57,26 @@ $ docker-compose logs -f
 
 ---
 
-## 6. Next Steps
+## 6. ## SELinux Configuration for n8n (Podman Deployment)
+
+- **Initial State**: SELinux set to `Permissive` for safe testing.
+- **Symptoms**: Podman container failed to bind to port `5678`, and `ausearch` showed no relevant AVC denials initially.
+- **Actions Taken**:
+  - Set custom SELinux context on bind mount directory:
+    ```bash
+    $ sudo chcon -Rt container_file_t /home/sleepy/n8n-docker
+    ```
+  - Created and applied a custom SELinux policy module (e.g., `n8n_port.te`) to explicitly allow access.
+  - Restarted the n8n container and confirmed successful binding and access via `curl`.
+
+- **Verification**:
+  - Ran `ausearch -m avc -ts recent` post-restart.
+  - **Result**: No AVC denials observed. SELinux is not blocking container operations.
+  - Exported log to: `~/selinux-n8n-audit.log` (empty)
+  - n8n now runs cleanly under SELinux constraints.
+
+
+## 7. Next Steps
 
 - Configure environment variables via .env
 - Set up revers proxy with SSL
