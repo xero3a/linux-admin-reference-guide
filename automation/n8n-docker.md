@@ -5,7 +5,7 @@
 - Host OS: [Your host OS here]
 - Docker version: [docker --version]
 - Docker Compose version: [docker-compose --version]
-- Port: 5678 (default)
+- Port: <port> (default)
 
 ## 1. Install Docker and Docker Compose
 
@@ -24,7 +24,7 @@ $ sudo systemctl enable --now docker
 ~  n8n:
 ~    image: n8nio/n8n
 ~    ports:
-~      - "5678:5678"
+~      - "<port>:<port>"
 ~    volumes:
 ~      - ~/.n8n:/home/node/.n8n
 ~    restart: unless-stopped
@@ -41,7 +41,7 @@ $ docker-compose up -d
 
 $ docker ps
 
-- Access n8n web UI at http://localhost:5678
+- Access n8n web UI at <URL://hostname:port>
 
 ---
 
@@ -52,7 +52,7 @@ $ docker-compose restart
 
 - Stop container:
 $ docker-compose down
- - View logs:
+- View logs:
 $ docker-compose logs -f
 
 ---
@@ -60,11 +60,11 @@ $ docker-compose logs -f
 ## 6. ## SELinux Configuration for n8n (Podman Deployment)
 
 - **Initial State**: SELinux set to `Permissive` for safe testing.
-- **Symptoms**: Podman container failed to bind to port `5678`, and `ausearch` showed no relevant AVC denials initially.
+- **Symptoms**: Podman container failed to bind to port `<port>`, and `ausearch` showed no relevant AVC denials initially.
 - **Actions Taken**:
   - Set custom SELinux context on bind mount directory:
     ```bash
-    $ sudo chcon -Rt container_file_t /home/sleepy/n8n-docker
+    $ sudo chcon -Rt container_file_t /home/user/n8n-docker
     ```
   - Created and applied a custom SELinux policy module (e.g., `n8n_port.te`) to explicitly allow access.
   - Restarted the n8n container and confirmed successful binding and access via `curl`.

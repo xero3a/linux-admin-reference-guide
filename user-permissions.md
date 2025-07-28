@@ -18,36 +18,35 @@ aligned with security standards.
 ### Special Permission Bits
 
 - **Setuid (Set User ID)**:  
-  Allows users to execute a file with the file owner’s privileges.  
-  Example:  
-  ```bash
-  sudo chmod u+s /path/to/executable
+#  Allows users to execute a file with the file owner’s privileges.  
+Example:  
+```bash
+$ sudo chmod u+s /path/to/executable
 - Setgid (Set Groupd ID)
- sudo chmod g+s /path/to/dir
+$ sudo chmod g+s /path/to/dir
 - Sticky Bit
-Restricts file deletion within a directory to the file's owner or root
-sudo chmod +t /path/to/dir
+# Restricts file deletion within a directory to the file's owner or root
+$ sudo chmod +t /path/to/dir
 
 
 ### Password Policies and Expiration
 
-Managing password aging helps enforce regular password changes, improving security.
+# Managing password aging helps enforce regular password changes, improving security.
 
 - View current settings for a user:
-  ```bash
-  chage -l johndoe
+$ chage -l johndoe
 - Password Expiration Policy
-sudo chage -M 90 user
+$ sudo chage -M 90 user
 - Set warning period before   expiration
-sudo chage -W 7 user
+$ sudo chage -W 7 user
 - Lock account # days before expiration
-sudo chage -I 14 user
+$ sudo chage -I 14 user
 - System-wide password policies
   a. /etc/login.defs
-sudo nano /etc/login.defs
-~ PASS_MAX_DAYS 90
-~ PASS_MIN_DAYS 0
-~ PASS_WARN_AGE 7
+$ sudo nano /etc/login.defs
+	~ PASS_MAX_DAYS 90
+	~ PASS_MIN_DAYS 0
+	~ PASS_WARN_AGE 7
 
 
 
@@ -56,76 +55,78 @@ sudo nano /etc/login.defs
 
 ### Group Management ###
 - Creating new groups
-sudo groupadd group_name
+$ sudo groupadd group_name
 - Add an Existing user to a group
-sudo usermod -aG group_name user
+$ sudo usermod -aG group_name user
 - Veryify group membership
-groups user
+$ groups user
 - Changing users primary gorup
-sudo usermod -g group_name user
+$ sudo usermod -g group_name user
 - Remove a group
-sudo groupdel group_name
+$ sudo groupdel group_name
 
 
 
 ### File and Permissions Management ###
 - Changing File Ownership
-sudo chown username file.txt
-sudo chown user:group file.txt
+$ sudo chown username file.txt
+$ sudo chown user:group file.txt
 - Recursive Changes
-sudo chown -R sleepy:admin /home/user/
+$ sudo chown -R sleepy:admin /home/user/
 - Changing Group Ownership
-sudo chgrp groupname file.txt
+$ sudo chgrp groupname file.txt
 - Recursive Group Changes
-sudo chgrp -R group /dir/to/be_changed
+$ sudo chgrp -R group /dir/to/be_changed
 - Changing Permissions
-chmod u+x script.sh	# gives user execute permissions
-chmod g-w file.txt	# remove write from group
-chmod o=r file.txt	# set "others" to read-only
+$ chmod u+x script.sh	# gives user execute permissions
+$ chmod g-w file.txt	# remove write from group
+$ chmod o=r file.txt	# set "others" to read-only
 - Numeric Notation
-chmod 755 script.sh	# rwxr-xr-x
-chmod 644 file.txt	# rw-r--r--
+$ chmod 755 script.sh	# rwxr-xr-x
+$ chmod 644 file.txt	# rw-r--r--
 - Recursive application to a Directory
-chmod -R 744 /path/to/dir
+$ chmod -R 744 /path/to/dir
 - Setting default Permissions
-umask
+$ umask
 - Setting a new umask (current session)
-umask 027
+$ umask 027
 - Adding persistence to a user 
-nano ~/.bashrc 
-...or...
-nano ~/.bash_profile
-~ echo 'umask 027' >> ~/.bashrc
+$ nano ~/.bashrc 
+	...or...
+$ nano ~/.bash_profile
+	~ echo 'umask 027' >> ~/.bashrc
 
 
 # Special Permissions
 - Set SUID
+$ chmod u+s /path/to/file
+$ chmod u-s /path/to/file
 - SetGID on a directory
-chmod g+s /shared_dir
-chmod +t /shared_dir
+$ chmod g+s /shared_dir
+$ chmod +t /shared_dir
 
 
 ### Sudoers Configuration ###
 - Editing /etc/sudoers
-sudo visudo
+$ sudo visudo
 - Granting sudo Access to a user
-user ALL=(ALL) ALL	# ALL= execute any command: (ALL)=as any user: ALL=from any host
-~ :wq 
+	~ user ALL=(ALL) ALL	# ALL= execute any command: (ALL)=as any user: ALL=from any host
+	~ :wq 
 $ sudo whoami		# verifies user has been added to sudoers file
 - Granting Limited Command Access
 $ sudo visudo
-~ Cmnd_Alias NETWORK_CMDS = /usr/sbin/ip, /bin/ping
-~ netadmin ALL=(ALL) NETWORK_CMDS
+	~ Cmnd_Alias NETWORK_CMDS = /usr/sbin/ip, /bin/ping
+	~ netadmin ALL=(ALL) NETWORK_CMDS
 - Granting sudo Access to a Group
-sudo usermod -aG wheel user
-sudo visudo 
-~ %wheel ALL=(ALL) ALL		# must be uncommentted 
+$ sudo usermod -aG wheel user
+$ sudo visudo 
+	~ %wheel ALL=(ALL) ALL		# must be uncommentted 
 - Restricting Commands
-sudo visudo 
-~ user ALL=(ALL) ALL /usr/sbin/systemctl restart nginx	# restricted command
+$ sudo visudo 
+	~ user ALL=(ALL) ALL /usr/sbin/systemctl restart nginx	# restricted command
 - Disabling Password Promts (Not recommended)
-sudo visudo
-~ user ALL=(ALL) ALL NOPASSWD: ALL
+$ sudo visudo
+	~ user ALL=(ALL) ALL NOPASSWD: ALL
 
 
 
@@ -139,13 +140,13 @@ $ sudo lastb		# read from the /var/log/btmp file
 $ who			# identify who is logged into what terminal
 $ w			# identify more detail as to what a user is doing
 - Check Login Attempts with journalctl (Systemd)
-sudo journalctl _COMM=sshd | grep "Failed password"
+$ sudo journalctl _COMM=sshd | grep "Failed password"
 - Install <acct> for Detailed Tracking (optional)
-sudo dnf install psacct
-sudo systemctl start psacct
-sudo systemctl enable psacct
-sudo lastcomm		# prints executed commands
-sudo sa			# summarizes command usage
+$ sudo dnf install psacct
+$ sudo systemctl start psacct
+$ sudo systemctl enable psacct
+$ sudo lastcomm		# prints executed commands
+$ sudo sa			# summarizes command usage
 
 
 ### Managing File and Directory Permissions

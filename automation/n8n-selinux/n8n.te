@@ -7,9 +7,9 @@ require {
     class tcp_socket name_bind;
 }
 
-# Allow container processes to bind to HTTP ports (e.g., 5678)
+# Allow container processes to bind to HTTP ports (e.g., #####)
 allow container_t http_port_t:tcp_socket name_bind;
 
 # If you run Podman/Docker with container_runtime_t
 allow container_runtime_t http_port_t:tcp_socket name_bind;
-# This grants permission for containers to bind to TCP 5678
+# This grants permission for containers to bind to UDP/TCP #####

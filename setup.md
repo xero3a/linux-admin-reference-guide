@@ -53,8 +53,8 @@ ________________________________________________________________________________
 
 - **Installation Type:** Minimal Install
 - **Root Password:** Set
-- **User Created:** sleepy
-- **Hostname:** sleepy.localdomain
+- **User Created:** <user>
+- **Hostname:** <user>.<domain>
 - **Timezone:** Default (or specify)
 - **Post-Install Boot:** Successful (into CLI)
 
@@ -64,23 +64,23 @@ ________________________________________________________________________________
 - Verified internet connectivity with `ping`
 - Updated system using:
   ```bash
-  sudo dnf update -y
+$ sudo dnf update -y
 - Enabled EPEL repository
-  ~ sudo dnf install epel-release -y
-  ~ sudo dnf update -y
+$ sudo dnf install epel-release -y
+$ sudo dnf update -y
 - Installed base admin tools
-  ~ sudo dnf isntall vim git curl wget net-tools htop -y
+$ sudo dnf isntall vim git curl wget net-tools htop -y
 
 4.    Git Configuration
 - Created GitHUB user account
 - Installed Git
 - Configured user info
-  ~ git config --global user.name "my.name"
-  ~ git config --global user.email "my.email@example.com"
+$ git config --global user.name "my.name"
+$ git config --global user.email "my.email@example.com"
 - Generated SSH keys (ed25519) and added to public key in GH
 - Initialized local git repo and performed initial commit
 - Remote origin set to:
-  ~ git@github.com:user.name/git/repos/setup.git
+$ git@github.com:user.name/git/repos/setup.git
 - Pushed to main branch successfully
 
 5.    Notes

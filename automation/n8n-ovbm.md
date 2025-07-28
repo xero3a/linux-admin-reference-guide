@@ -10,8 +10,8 @@ This guide documents the step-by-step process to install and configure **n8n**, 
 - **Guest OS:** RHEL 9 (or specify)
 - **VM Manager:** Oracle VirtualBox
 - **IP Address:** [Insert IP if static or bridged]
-- **Access Method:** Localhost or SSH
-- **Port:** 5678 (default)
+- **Access Method:** <hostname> or <ssh>
+- **Port:** <port> (default)
 
 ---
 
@@ -28,7 +28,7 @@ $ npm -v
 
 $ sudo npm install n8n -g
 
-**Note:** Note: You may see "213 packages looking for funding" — this is expected for open source packages managed via npm.
+**Note:** Note: You may see "# of packages looking for funding" — this is expected for open source packages managed via npm.
 
 ---
 
@@ -36,7 +36,7 @@ $ sudo npm install n8n -g
 
 $ n8n
 
-	a. Visit: http://localhost:5678
+	a. Visit: <URL://Hostname:Port>
 	b. Register your owner account and configure the UI
 	c. Optional: enter license key when available
 
@@ -52,13 +52,13 @@ $ sudo nano /etc/systemd/system/n8n.service
 
 ~ [Service]
 ~ Type=simple
-~ User=sleepy
+~ User=<User_name>
 ~ ExecStart=/usr/local/bin/n8n
 ~ Restart=on-failure
 ~ Environment=PATH=/usr/bin:/usr/local/bin
-~ Environment=N8N_PORT=5678
+~ Environment=N8N_PORT=<port>
 ~ Environment=EDITOR=nano
-~ WorkingDirectory=/home/sleepy/
+~ WorkingDirectory=/home/<user>/
 
 ~ [Install]
 ~ WantedBy=multi-user.target
@@ -82,8 +82,8 @@ $ chmod 600 ~/.n8n/config
 
 ## 6. Troubleshooting Common Errors
 
-- Port 5678 already in use:
-$ sudo lsof -i :5678
+- Port ##### already in use:
+$ sudo lsof -i :<port>
 $ sudo systemctl stop n8n
 $ sudo systemctl start n8n
 
@@ -96,7 +96,7 @@ $ kill -9 [PID]
 ## 7. Verify n8n is Running
 
 sudo systemctl status n8n
-**Note:** Visit http://localhost:5678 to confirm the web UI is accessible
+**Note:** Visit <URL://hostname:Port> to confirm the web UI is accessible
 
 ---
 
