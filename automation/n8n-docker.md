@@ -75,9 +75,21 @@ $ docker-compose logs -f
   - Exported log to: `~/selinux-n8n-audit.log` (empty)
   - n8n now runs cleanly under SELinux constraints.
 
+---
 
 ## 7. Next Steps
 
 - Configure environment variables via .env
 - Set up revers proxy with SSL
 - Add workflow backups
+
+---
+
+## Summary
+
+- Chose Docker to quickly containerize and deploy the n8n automation platform.
+- Ensured secure use of `.env` files, custom volumes, and port mappings.
+- Verified persistent data and UI accessibility from the host system.
+- This setup showcases containerization fundamentals and environment management.
+- Useful for prototyping or running isolated workflows without system-level overhead.
+
