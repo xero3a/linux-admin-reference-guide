@@ -6,9 +6,9 @@ OVERVIEW
 This project documents my process of setting up a RedHat Enterprise Linux 9 lab 
 inside VirtualBox.  
 
-The GOAL:  Build a solid enterprise-grade Linux environment to develop and 
+The GOAL:  Build a home-grade Linux environment to develop and 
 demonstrate system administration skills, gain troubleshooting experience, and 
-document real-world tasks doe my Linux career portfolio.
+document real-world tasks for my Linux career portfolio.
 
 ----------------------------------------------------------------------------------------------
 
@@ -30,7 +30,6 @@ document real-world tasks doe my Linux career portfolio.
 
 3)    Post-Install Configuration
             -  Enabled DNF plugins & updated the system:
-            -  ``` bash
             -  sudo dnf install -y dnf-plugins-core
             -  sudo dnf update -y
             -  sudo dnf install -y vim wget curl git net-tools bash-completion
@@ -40,16 +39,13 @@ document real-world tasks doe my Linux career portfolio.
 4)    Troubleshooting & Lessons Learned
             -  VirtualBox tried to force an unattended install -- Needed to disable it to proceed manually
             -  The "Next" button was greyed out until I selected the ISO manually and launched without 
-                automation
-            -   System was registered, but "subscription-manager" showed status: disabled
+               automation
+            -  System was registered, but "subscription-manager" showed status: disabled
             -  Could not attach pools due to SCA being enabled
             -  CLI commands like --enable failed or were ambiguous due to minimal toolset
             -  Had to use the Red Hat Portal to enabled software sources directly
             -  "htop" and other tools not found in official repos -- required manual EPEL installation
             -  "epel-release" not found via "dnf";  the workaround was to download the ".rpm" directly
-                 from Fedora's servers
+               from Fedora's servers
 ***********   ---   These problems were solved step-by-step through documentation review, testing fixes, and
-                            understanding RHEL's enterprise content model -- all part of what makes the work that 
-                             much rewarding.                                                                                            ---   **************
-
-# Update
+                     understanding RHEL's enterprise content model -- all part of what makes the work rewarding.   ---   **************

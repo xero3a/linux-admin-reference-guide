@@ -68,12 +68,20 @@ $ sudo systemctl daemon-reexec
 $ sudo systemctl daemon-reload
 $ sudo systemctl enable --now n8n
 
+# Open Firewall Port (if firewalld is enabled)
+
+- If `firewalld` is running, you'll need to open the n8n port (default: <port>):
+$ sudo firewall-cmd --add-port=<port>/<protocol> --permanent
+$ sudo firewall-cmd --reload
+
+- Verify the port is open
+$ sudo firewalld-cmd --list-ports
 ---
 
 ## 5. Permissions Warning
 
 - If you see:
-$ Permissions 0644 for /home/sleepy/.n8n/config are too wide.
+$ Permissions 0644 for /home/user/.n8n/config may be too accessible.
 
 - Fix with:
 $ chmod 600 ~/.n8n/config
@@ -91,12 +99,17 @@ $ sudo systemctl start n8n
 $ ps aux | grep n8n
 $ kill -9 [PID]
 
+- Verify firewalld is running
+$ sudo systemctl status firewalld
+	...or...
+- Verify firewalld is installed
+$ sudo dnf info firewalld
 ---
 
 ## 7. Verify n8n is Running
 
 sudo systemctl status n8n
-**Note:** Visit <URL://hostname:Port> to confirm the web UI is accessible
+**Note:** Visit <URL://Hostname:Port> to confirm the web UI is accessible
 
 ---
 
@@ -104,4 +117,4 @@ sudo systemctl status n8n
 
 - Create a backup and restore automation
 - Set up SSL with Nginx reverse proxy
-- Add workflow examples
+- Add workflow and trigger examples
