@@ -431,10 +431,10 @@ $ journalctl -xeu postfix
 
 ########### Install & Configure Dovecot on RHEL 9 (Offline)
 
-                What This Will Enable:
-                            + Access to local mailboxes via IMAP
-                            + Optionally allow LAN clients to connect securely (later)
-                            + Used in combination with Postfix for full email flow
+	                What This Will Enable:
+	                            - Access to local mailboxes via IMAP
+	                            - Optionally allow LAN clients to connect securely (later)
+	                            - Used in combination with Postfix for full email flow
 
 
 Step 1: Install Dovecot from Local Repo
@@ -601,10 +601,10 @@ $ openssl s_client -connect localhost:143 -starttls imap
 
 - Both should return a valid TLS handshake with your cert.
 
-                You now have:
-                        - Port 993 for encrypted IMAP
-                        - Port 143 with STARTTLS support
-                        - Self-signed certs (sufficient for testing and LAN use)
+	                You now have:
+	                        - Port 993 for encrypted IMAP
+	                        - Port 143 with STARTTLS support
+	                        - Self-signed certs (sufficient for testing and LAN use)
 
 
 
@@ -671,11 +671,11 @@ $ thunderbird
 
 
 
-🧪 5. Test Mail Loop
+5. Test Mail Loop
 
-In Thunderbird:
+- In Thunderbird:
 
-Compose a message to <user>@mail.local
+- Compose a message to <user>@mail.local
 		- Subject: Test from Thunderbird
 		- Body: anything
 		- Click Send
@@ -683,16 +683,16 @@ Compose a message to <user>@mail.local
 		- Check inbox
 		- If your mail server is configured correctly, the message will appear shortly
 
-📂 6. (Optional) Enable Maildir for Dovecot
+(Optional) Enable Maildir for Dovecot
 
-If you prefer Maildir over mbox (recommended for performance), we can convert and reconfigure.
+- If you prefer Maildir over mbox (recommended for performance), we can convert and reconfigure.
 
-🧾 Summary
-✅ You've now:
+Summary
 
-		- Installed Thunderbird
-		- Connected it to your offline RHEL 9 mail server
-		- Verified mail sending/receiving over encrypted channels
+			You've now have:
+					- Installed Thunderbird
+					- Connected it to your offline RHEL 9 mail server
+					- Verified mail sending/receiving over encrypted channels
 
 
 
