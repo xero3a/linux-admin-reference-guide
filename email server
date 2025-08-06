@@ -432,9 +432,9 @@ $ journalctl -xeu postfix
 ########### Install & Configure Dovecot on RHEL 9 (Offline)
 
 	                What This Will Enable:
-	                            - Access to local mailboxes via IMAP
-	                            - Optionally allow LAN clients to connect securely (later)
-	                            - Used in combination with Postfix for full email flow
+	                        - Access to local mailboxes via IMAP
+	                        - Optionally allow LAN clients to connect securely (later)
+	                        - Used in combination with Postfix for full email flow
 
 
 Step 1: Install Dovecot from Local Repo
@@ -690,9 +690,9 @@ $ thunderbird
 Summary
 
 			You've now have:
-					- Installed Thunderbird
-					- Connected it to your offline RHEL 9 mail server
-					- Verified mail sending/receiving over encrypted channels
+				- Installed Thunderbird
+				- Connected it to your offline RHEL 9 mail server
+				- Verified mail sending/receiving over encrypted channels
 
 
 
@@ -704,81 +704,79 @@ Summary
 
 ##########  let’s now create multiple mail users on your RHEL 9 server and enforce mail quotas, so your Postfix + Dovecot setup is ready for multi-user operation and storage control.
 
-👥 Step 1: Create Mail Users
+Step 1: Create Mail Users
 
-For a simple setup (local delivery with /var/mail/USERNAME or Maildir), system users double as mail users.
+- For a simple setup (local delivery with /var/mail/USERNAME or Maildir), system users double as mail users.
 
-➕ Create Users:
+- Create Users:
 $ sudo adduser <user>
 $ sudo passwd <user>
 
 $ sudo adduser <user>
 $ sudo passwd <user>
 
-Each user now has:
-
+- Each user now has:
 		- A system account
 		- A mailbox at /var/mail/alice (or ~/Maildir if configured)
 
 
-📦 Step 2: Enable Maildir Format (Optional but Recommended)
+Step 2: Enable Maildir Format (Optional but Recommended)
 
-Using Maildir (instead of traditional mbox) improves performance and supports quotas better.
+- Using Maildir (instead of traditional mbox) improves performance and supports quotas better.
 
-🧾 Modify /etc/dovecot/conf.d/10-mail.conf
-mail_location = maildir:~/Maildir
+- Modify /etc/dovecot/conf.d/10-mail.conf
+~ mail_location = maildir:~/Maildir
 
-🔄 Restart Dovecot:
+- Restart Dovecot:
 $ sudo systemctl restart dovecot
 
-🛠 Create Maildir for Existing Users:
+- Create Maildir for Existing Users:
 $ sudo doveadm mailbox create -u alice INBOX
 $ sudo doveadm mailbox create -u bob INBOX
 
 **Note:** - Or log in as the user and send a test mail to trigger automatic creation.
 
 
-📏 Step 3: Set Mailbox Quotas with Dovecot
+Step 3: Set Mailbox Quotas with Dovecot
 
 1. Edit /etc/dovecot/conf.d/10-mail.conf:
+~ mail_plugins = quota
 
-mail_plugins = quota
 
 2. Edit /etc/dovecot/conf.d/10-master.conf (service auth section):
-  unix_listener auth-userdb {
-    mode = 0600
-    user = vmail
-    group = vmail
-  }
+~ unix_listener auth-userdb {
+~   mode = 0600
+~   user = vmail
+~   group = vmail
+~ }
 
-(If you’re using system users, you can skip vmail)
+**Note:** - If you’re using system users, you can skip vmail
 
 
-3. Configure Quota in /etc/dovecot/conf.d/90-quota.conf
+3. Configure Quota in /etc/dovecot/conf.d/90-quota.conf:
+~ plugin {
+~   quota = maildir:User quota
+~   quota_rule = *:storage=100MB
+~   quota_rule2 = Trash:storage=10%%
+~ }
+~ protocol imap {
+~   mail_plugins = $mail_plugins imap_quota
+~ }
 
-plugin {
-  quota = maildir:User quota
-  quota_rule = *:storage=100MB
-  quota_rule2 = Trash:storage=10%%
-}
-protocol imap {
-  mail_plugins = $mail_plugins imap_quota
-}
+- This limits all users to 100MB, and restricts Trash to 10% of quota.
 
-This limits all users to 100MB, and restricts Trash to 10% of quota.
+- Restart Dovecot Again:
+$ sudo systemctl restart dovecot
 
-🔄 Restart Dovecot Again:
-sudo systemctl restart dovecot
-
-✅ Verify Quotas
+- Verify Quotas
 $ sudo doveadm quota get -u alice
 
-You'll see current usage and limits.
+- You'll see current usage and limits.
 
 
-🔐 (Optional): Prevent Shell Access
-To make users email-only (no shell login):
+(Optional): Prevent Shell Access
 
+- To make users email-only (no shell login):
 $ sudo usermod -s /sbin/nologin alice
 
 
@@ -788,86 +786,84 @@ $ sudo usermod -s /sbin/nologin alice
 
 
 
-############  📬 What Are Aliases & Forwarding?
-Aliases: Map one email address to another (e.g., admin@mail.local → alice)
+############  What Are Aliases & Forwarding?
 
-Forwarding: Automatically send incoming mail to another user or external address
+- Aliases: Map one email address to another (e.g., admin@mail.local → alice)
+- Forwarding: Automatically send incoming mail to another user or external address
 
-🛠 Step 1: Configure /etc/aliases
-This is the standard system-wide alias file used by Postfix.
+Step 1: Configure /etc/aliases
 
-Example:
-# /etc/aliases
+- This is the standard system-wide alias file used by Postfix.
 
-root:       alice
-admin:      bob
-support:    alice
-webmaster:  vern
+		Example:
+		# /etc/aliases
+		
+		root:       alice
+		admin:      bob
+		support:    alice
+		webmaster:  greg
 
-Apply the changes:
+- Apply the changes:
 $ sudo newaliases
 
-This compiles the aliases into /etc/aliases.db, which Postfix reads.
+- This compiles the aliases into /etc/aliases.db, which Postfix reads.
 
 
-🔁 Step 2: Per-User Forwarding via .forward
+Step 2: Per-User Forwarding via .forward
 
-Each user can create a .forward file in their home directory to redirect mail.
+- Each user can create a .forward file in their home directory to redirect mail.
 
-Example (forward all of Alice’s mail to Bob):
-$ echo "bob" > /home/alice/.forward
-$ chown alice:alice /home/alice/.forward
-$ chmod 644 /home/alice/.forward
+		Example (forward all of Alice’s mail to Bob):
+		$ echo "bob" > /home/alice/.forward
+		$ chown alice:alice /home/alice/.forward
+		$ chmod 644 /home/alice/.forward
 
-Or forward to external email:
+- Or forward to external email:
 $ echo "user@example.com" > /home/alice/.forward
 
-Postfix must allow forwarding to external destinations (depends on your relay settings).
+- Postfix must allow forwarding to external destinations (depends on your relay settings).
 
-📥 Step 3: Enable and Reload Postfix
+Step 3: Enable and Reload Postfix
 
-If not already done:
+- If not already done:
 $ sudo systemctl enable --now postfix
 $ sudo systemctl reload postfix
 
 
-🧪 Step 4: Test Alias and Forwarding
+Step 4: Test Alias and Forwarding
 
-From Thunderbird or local mail client:
+- From Thunderbird or local mail client:
 $ echo "Test message" | mail -s "Alias test" admin@mail.local
 
-Check that bob receives the message as expected.
+- Check that bob receives the message as expected.
 
-📂 Optional: Virtual Alias Maps (Advanced)
+Optional: Virtual Alias Maps (Advanced)
 
-If you plan to host multiple domains or want aliases independent of local users:
+- If you plan to host multiple domains or want aliases independent of local users:
 
-Example in /etc/postfix/virtual:
+		Example in /etc/postfix/virtual:
+		
+		info@mail.local       alice
+		helpdesk@mail.local   bob
+		sales@mail.local      sales@example.com
 
-info@mail.local       alice
-helpdesk@mail.local   bob
-sales@mail.local      sales@example.com
-
-Then configure Postfix:
+- Then configure Postfix:
 $ sudo postmap /etc/postfix/virtual
 
-And in /etc/postfix/main.cf:
+- And in /etc/postfix/main.cf:
+~ virtual_alias_domains = mail.local
+~ virtual_alias_maps = hash:/etc/postfix/virtual
 
-virtual_alias_domains = mail.local
-virtual_alias_maps = hash:/etc/postfix/virtual
-
-Reload:
+- Reload:
 $ sudo systemctl reload postfix
 
 
-✅ Summary
-
-	You’ve now enabled:
-			- 📨 System-wide aliases with /etc/aliases
-			- 🔁 Per-user forwarding with ~/.forward
-			-📦 (Optional) virtual alias maps for more complex setups
-
-
+		Summary
+	
+			You’ve now enabled:
+					- System-wide aliases with /etc/aliases
+					- Per-user forwarding with ~/.forward
+					- (Optional) virtual alias maps for more complex setups
 
 
 
@@ -877,110 +873,107 @@ $ sudo systemctl reload postfix
 ########## To set up per-user or group quotas for mail storage in your Postfix + Dovecot setup on RHEL 9, we’ll use Dovecot’s quota plugin. You've already enabled general quotas, so now we’ll refine that with more granular control.
 
 
-📦 Mail Quota Recap
+Mail Quota Recap
 
-Dovecot supports:
-
-		- 🧍‍♂️ Per-user quotas
-		- 👥 Group quotas
-		- 📁 Quotas per folder (e.g., limit Trash)
-
-
-✅ Prerequisites (Already Done, Recap)
-
-Ensure your system is using:
-Maildir format (not mbox)
-Dovecot quota plugin enabled in:
-/etc/dovecot/conf.d/10-mail.conf
-/etc/dovecot/conf.d/90-quota.conf
-
-You likely have:
-plugin {
-  quota = maildir:User quota
-  quota_rule = *:storage=100MB
-  quota_rule2 = Trash:storage=10%%
-}
+		Dovecot supports:
+				- 🧍‍♂️ Per-user quotas
+				- 👥 Group quotas
+				- 📁 Quotas per folder (e.g., limit Trash)
 
 
-👤 Step 1: Set Per-User Quotas
+	Prerequisites (Already Done, Recap):
 
-Create a file /etc/dovecot/users_quota:
-alice:storage=100MB
-bob:storage=250MB
-charlie:storage=500MB
-
-Then edit /etc/dovecot/conf.d/90-quota.conf:
-plugin {
-  quota = maildir:User quota
-  quota_dict = file:/var/lib/dovecot/quota
-
-  quota_rule = *:storage=100MB
-
-  quota_rule2 = Trash:storage=10%%
-
-  quota_grace = 10%%
-}
-
-dict {
-  quota = file:/var/lib/dovecot/quota
-}
-
-But Dovecot doesn't natively read per-user quotas from a file. To truly enforce different limits per user, use the userdb extra fields method.
+		Ensure your system is using -
+		Maildir format (not mbox)
+		Dovecot quota plugin enabled in -
+		/etc/dovecot/conf.d/10-mail.conf
+		/etc/dovecot/conf.d/90-quota.conf
+		
+		You likely have -
+		plugin {
+		  quota = maildir:User quota
+		  quota_rule = *:storage=100MB
+		  quota_rule2 = Trash:storage=10%%
+		}
 
 
-🔧 Method: Define per-user quota in Dovecot's passwd or custom userdb
-Option A: If you're using /etc/passwd (system users), override with Dovecot userdb:
+Step 1: Set Per-User Quotas
 
-Create a file: /etc/dovecot/userdb:
+- Create a file /etc/dovecot/users_quota:
+~ alice:storage=100MB
+~ bob:storage=250MB
+~ charlie:storage=500MB
 
-alice:{PLAIN}x:1000:1000::/home/alice::userdb_quota_rule=*:storage=100M
-bob:{PLAIN}x:1001:1001::/home/bob::userdb_quota_rule=*:storage=250M
+- Then edit /etc/dovecot/conf.d/90-quota.conf:
+~ plugin {
+~   quota = maildir:User quota
+~   quota_dict = file:/var/lib/dovecot/quota
+~
+~   quota_rule = *:storage=100MB
+~
+~   quota_rule2 = Trash:storage=10%%
+~
+~   quota_grace = 10%%
+~ }
+~
+~ dict {
+~   quota = file:/var/lib/dovecot/quota
+~ }
 
-And tell Dovecot to use this userdb in /etc/dovecot/conf.d/auth-system.conf.ext:
-userdb {
-  driver = passwd-file
-  args = /etc/dovecot/userdb
-}
+- But Dovecot doesn't natively read per-user quotas from a file. To truly enforce different limits per user, use the userdb extra fields method.
 
-Restart Dovecot:
+
+Method: Define per-user quota in Dovecot's passwd or custom userdb
+
+- Option A: If you're using /etc/passwd (system users), override with Dovecot userdb:
+
+- Create a file: /etc/dovecot/userdb:
+~ alice:{PLAIN}x:1000:1000::/home/alice::userdb_quota_rule=*:storage=100M
+~ bob:{PLAIN}x:1001:1001::/home/bob::userdb_quota_rule=*:storage=250M
+
+- And tell Dovecot to use this userdb in /etc/dovecot/conf.d/auth-system.conf.ext:
+~ userdb {
+~   driver = passwd-file
+~   args = /etc/dovecot/userdb
+~ }
+
+- Restart Dovecot:
 $ sudo systemctl restart dovecot
 
 
-👥 Step 2: Configure Group Quotas (Optional)
+Step 2: Configure Group Quotas (Optional)
 
-To apply the same quota for a group (e.g., all users in mailusers group):
+- To apply the same quota for a group (e.g., all users in mailusers group):
 
-Add a group and assign users:
+- Add a group and assign users:
 $ sudo groupadd mailusers
 $ sudo usermod -aG mailusers alice
 $ sudo usermod -aG mailusers bob
 
-Update 90-quota.conf:
-plugin {
-  quota = maildir:User quota
-  quota_rule = *:storage=100MB
-  quota_rule_group = mailusers:storage=250MB
-}
+- Update 90-quota.conf:
+~ plugin {
+~   quota = maildir:User quota
+~   quota_rule = *:storage=100MB
+~   quota_rule_group = mailusers:storage=250MB
+~ }
 
-This sets a default 100MB, but users in mailusers get 250MB.
+- This sets a default 100MB, but users in mailusers get 250MB.
 
 
-🔍 Step 3: View and Test Quotas
-Check user quota:
+Step 3: View and Test Quotas
+
+- Check user quota:
 $ sudo doveadm quota get -u alice
 
-Send test mail to fill quota:
-
-dd if=/dev/zero bs=1024 count=10240 | mail -s "Quota Test" alice
-
-
-✅ Summary
-		- Type:			Method
-		- Per-user:		Dovecot userdb with userdb_quota_rule
-		- Group:		Group-based rules via quota_rule_group
-		- Folder rule:		e.g. Trash limited to 10%
+- Send test mail to fill quota:
+$ dd if=/dev/zero bs=1024 count=10240 | mail -s "Quota Test" alice
 
 
+			Quota Summary:
+			  Type			Method
+			- Per-user:		Dovecot userdb with userdb_quota_rule
+			- Group:		Group-based rules via quota_rule_group
+			- Folder rule:		e.g. Trash limited to 10%
 
 
 
@@ -989,8 +982,8 @@ dd if=/dev/zero bs=1024 count=10240 | mail -s "Quota Test" alice
 
 ######### To automatically warn users when their mail quota is nearly full or exceeded, we can configure Dovecot to send quota warning emails using its built-in quota_warning feature.
 
-📣 Overview: Quota Warning Notifications
-Dovecot can trigger a custom script when a user reaches a certain percentage of their quota.
+Overview: Quota Warning Notifications
+	- Dovecot can trigger a custom script when a user reaches a certain percentage of their quota.
 
 Typical warning thresholds:
 	- 🔔 80% usage – Warning
@@ -998,87 +991,84 @@ Typical warning thresholds:
 	- ⛔ 100% – Quota exceeded (mail may be rejected)
 
 
-🧩 Step-by-Step Setup
+Setup
 
-✅ 1. Enable Quota Warnings in Dovecot
-Edit /etc/dovecot/conf.d/90-quota.conf:
-plugin {
-  quota = maildir:User quota
-
-  # Thresholds and the command to run when hit
-  quota_warning = storage=80%% quota-warning 80 %u
-  quota_warning2 = storage=95%% quota-warning 95 %u
-  quota_warning3 = storage=100%% quota-warning 100 %u
-
-  quota_grace = 10%%
-}
-
-
-✅ 2. Define the Quota Warning Service
-
-Edit /etc/dovecot/conf.d/90-quota.conf again (add this block outside the plugin section):
-service quota-warning {
-  executable = script /usr/local/bin/quota-warning.sh
-  user = dovecot
-  unix_listener quota-warning {
-  }
-}
+1. Enable Quota Warnings in Dovecot
+- Edit /etc/dovecot/conf.d/90-quota.conf:
+~ plugin {
+~   quota = maildir:User quota
+~ 
+~   # Thresholds and the command to run when hit
+~   quota_warning = storage=80%% quota-warning 80 %u
+~   quota_warning2 = storage=95%% quota-warning 95 %u
+~   quota_warning3 = storage=100%% quota-warning 100 %u
+~ 
+~   quota_grace = 10%%
+~ }
 
 
-✅ 3. Create the Warning Script
+2. Define the Quota Warning Service
 
-Create /usr/local/bin/quota-warning.sh:
-#!/bin/bash
-
-PERCENT="$1"
-USER="$2"
-
-MAIL_CMD="/usr/lib/sendmail -t"
-
-cat <<EOF | $MAIL_CMD
-To: $USER
-Subject: Mail Quota Warning - ${PERCENT}%
-
-Your mailbox has reached ${PERCENT}% of its quota.
-
-Please clean up old or unnecessary emails to avoid mail delivery issues.
-
-Thank you.
-EOF
-
-🛠️ Adjust the script for your mailer if you're not using sendmail. For Postfix + local delivery, this will work.
-
-Make it executable:
-sudo chmod +x /usr/local/bin/quota-warning.sh
+- Edit /etc/dovecot/conf.d/90-quota.conf again (add this block outside the plugin section):
+~ service quota-warning {
+~   executable = script /usr/local/bin/quota-warning.sh
+~   user = dovecot
+~   unix_listener quota-warning {
+~   }
+~ }
 
 
-✅ 4. Restart Dovecot
-sudo systemctl restart dovecot
+3. Create the Warning Script
+
+- Create /usr/local/bin/quota-warning.sh:
+~ #!/bin/bash
+~ 
+~ PERCENT="$1"
+~ USER="$2"
+~ 
+~ MAIL_CMD="/usr/lib/sendmail -t"
+~ 
+~ cat <<EOF | $MAIL_CMD
+~ To: $USER
+~ Subject: Mail Quota Warning - ${PERCENT}%
+~ 
+~ Your mailbox has reached ${PERCENT}% of its quota.
+~ 
+~ Please clean up old or unnecessary emails to avoid mail delivery issues.
+~ 
+~ Thank you.
+~ EOF
+
+- Adjust the script for your mailer if you're not using sendmail. For Postfix + local delivery, this will work.
+
+- Make it executable:
+$ sudo chmod +x /usr/local/bin/quota-warning.sh
 
 
-✅ 5. Test
+4. Restart Dovecot
+$ sudo systemctl restart dovecot
 
-You can simulate the warning trigger using doveadm:
 
+5. Test
+
+- You can simulate the warning trigger using doveadm:
 $ doveadm quota recalc -u alice
 $ doveadm quota get -u alice
 
-Then fill mailbox with test mail to reach threshold and watch for the alert email.
+- Then fill mailbox with test mail to reach threshold and watch for the alert email.
 
 
-✅ Optional: Log the Warnings
+Optional: Log the Warnings
 
-Modify the script to also log warnings:
-echo "$(date) - $USER reached ${PERCENT}%" >> /var/log/dovecot-quota-warnings.log
-
-
-✅ Summary
-	Threshold	Trigger				Action Taken
-	80%		quota-warning 80 %u		Send gentle warning email
-	95%		quota-warning 95 %u		Send urgent quota alert
-	100%		quota-warning 100 %u		May reject new mail (if enforced)
+- Modify the script to also log warnings:
+$ echo "$(date) - $USER reached ${PERCENT}%" >> /var/log/dovecot-quota-warnings.log
 
 
+			Summary
+				Threshold	Trigger				Action Taken
+				80%		quota-warning 80 %u		Send gentle warning email
+				95%		quota-warning 95 %u		Send urgent quota alert
+				100%		quota-warning 100 %u		May reject new mail (if enforced)
 
 
 
@@ -1088,140 +1078,112 @@ echo "$(date) - $USER reached ${PERCENT}%" >> /var/log/dovecot-quota-warnings.lo
 
 ######## integrating LDAP with your RHEL-based Postfix + Dovecot mail server is the right move for enterprise-scale user management. LDAP (e.g., OpenLDAP or Active Directory) centralizes authentication, user lookup, and even mailbox routing.
 
-🎯 Objectives
+Objectives
 
-✅ The purpose of LDAP:
+		- The purpose of LDAP:
+			- User authentication in Dovecot
+			- Recipient lookup and routing in Postfix
+			- Optional: fetch aliases, forwarding rules, etc.
 
-	- User authentication in Dovecot
-	- Recipient lookup and routing in Postfix
-	- Optional: fetch aliases, forwarding rules, etc.
+		
+		Prerequisites:
+		+ Working LDAP or AD server (OpenLDAP or Windows AD)
+		+ ldap-utils, nss-pam-ldapd, libnss-ldap, libpam-ldap packages (or sssd for AD)
+		+ Mail users exist in LDAP (uid, mail, homeDirectory at a minimum)
+
+Step-by-Step LDAP Integration
+1. Install LDAP Client Tools
+$ sudo dnf install -y openldap openldap-clients nss-pam-ldapd
+
+- Or if integrating with Active Directory, use:
+$ sudo dnf install -y sssd realmd oddjob oddjob-mkhomedir adcli samba-common
 
 
-🧩 Prerequisites
-Working LDAP or AD server (OpenLDAP or Windows AD)
+2. Configure LDAP Base Bind
 
-ldap-utils, nss-pam-ldapd, libnss-ldap, libpam-ldap packages (or sssd for AD)
+- Use authselect to configure LDAP auth (or use realm join for AD):
+$ sudo authselect select sssd with-mkhomedir --force
 
-Mail users exist in LDAP (uid, mail, homeDirectory at a minimum)
+- Then configure /etc/sssd/sssd.conf for LDAP or AD.
 
-🛠️ Step-by-Step LDAP Integration
-✅ 1. Install LDAP Client Tools
-bash
-Copy
-Edit
-sudo dnf install -y openldap openldap-clients nss-pam-ldapd
-Or if integrating with Active Directory, use:
+Secure with TLS/LDAPS. Set:
+~ ldap_uri = ldaps://ldap.example.com
 
-bash
-Copy
-Edit
-sudo dnf install -y sssd realmd oddjob oddjob-mkhomedir adcli samba-common
-✅ 2. Configure LDAP Base Bind
-Use authselect to configure LDAP auth (or use realm join for AD):
 
-bash
-Copy
-Edit
-sudo authselect select sssd with-mkhomedir --force
-Then configure /etc/sssd/sssd.conf for LDAP or AD.
+3. Configure Postfix to Use LDAP for Address Lookup
 
-🔐 Secure with TLS/LDAPS. Set:
+- Create /etc/postfix/ldap-users.cf:
+~ server_host = ldap.example.com
+~ search_base = ou=People,dc=example,dc=com
+~ bind = no
+~ version = 3
+~ query_filter = (mail=%s)
+~ result_attribute = uid
 
-ini
-Copy
-Edit
-ldap_uri = ldaps://ldap.example.com
-✅ 3. Configure Postfix to Use LDAP for Address Lookup
-Create /etc/postfix/ldap-users.cf:
+- Then update Postfix main.cf:
+~ local_recipient_maps = ldap:/etc/postfix/ldap-users.cf
 
-ini
-Copy
-Edit
-server_host = ldap.example.com
-search_base = ou=People,dc=example,dc=com
-bind = no
-version = 3
-query_filter = (mail=%s)
-result_attribute = uid
-Then update Postfix main.cf:
 
-ini
-Copy
-Edit
-local_recipient_maps = ldap:/etc/postfix/ldap-users.cf
-✅ 4. Configure Dovecot to Authenticate via LDAP
-Install the auth module:
+4. Configure Dovecot to Authenticate via LDAP
 
-bash
-Copy
-Edit
-sudo dnf install dovecot-pigeonhole dovecot-ldap
-Edit /etc/dovecot/conf.d/10-auth.conf:
+- Install the auth module:
+$ sudo dnf install dovecot-pigeonhole dovecot-ldap
 
-ini
-Copy
-Edit
-disable_plaintext_auth = yes
-auth_mechanisms = plain login
+- Edit /etc/dovecot/conf.d/10-auth.conf:
+~ disable_plaintext_auth = yes
+~ auth_mechanisms = plain login
+~ 
+~ !include auth-ldap.conf.ext
 
-!include auth-ldap.conf.ext
-Then configure /etc/dovecot/conf.d/auth-ldap.conf.ext:
+- Then configure /etc/dovecot/conf.d/auth-ldap.conf.ext:
+~ passdb {
+~   driver = ldap
+~   args = /etc/dovecot/dovecot-ldap.conf.ext
+~ }
+~ 
+~ userdb {
+~   driver = ldap
+~   args = /etc/dovecot/dovecot-ldap.conf.ext
+~ }
 
-ini
-Copy
-Edit
-passdb {
-  driver = ldap
-  args = /etc/dovecot/dovecot-ldap.conf.ext
-}
 
-userdb {
-  driver = ldap
-  args = /etc/dovecot/dovecot-ldap.conf.ext
-}
-✅ 5. Create /etc/dovecot/dovecot-ldap.conf.ext
-ini
-Copy
-Edit
-hosts = ldap.example.com
-dn = cn=readonly,dc=example,dc=com
-dnpass = secret_password
-ldap_version = 3
-base = ou=People,dc=example,dc=com
-user_attrs = homeDirectory=home,uidNumber=uid,gidNumber=gid
-user_filter = (uid=%u)
-pass_filter = (uid=%u)
-auth_bind = yes
-✅ Set auth_bind = yes to allow users to authenticate with their own credentials.
+5. Create /etc/dovecot/dovecot-ldap.conf.ext
+~ hosts = ldap.example.com
+~ dn = cn=readonly,dc=example,dc=com
+~ dnpass = secret_password
+~ ldap_version = 3
+~ base = ou=People,dc=example,dc=com
+~ user_attrs = homeDirectory=home,uidNumber=uid,gidNumber=gid
+~ user_filter = (uid=%u)
+~ pass_filter = (uid=%u)
+~ auth_bind = yes
 
-Secure the file:
 
-bash
-Copy
-Edit
-chmod 600 /etc/dovecot/dovecot-ldap.conf.ext
-chown root:dovecot /etc/dovecot/dovecot-ldap.conf.ext
-✅ 6. Restart Services
-bash
-Copy
-Edit
-sudo systemctl restart postfix dovecot sssd
-🔎 Testing
-Query LDAP manually:
+- Set auth_bind = yes to allow users to authenticate with their own credentials.
 
-bash
-Copy
-Edit
-ldapsearch -x -b "ou=People,dc=example,dc=com" "(uid=alice)"
-Send test mail to alice@example.com, verify Postfix resolves via LDAP.
+- Secure the file:
+$ chmod 600 /etc/dovecot/dovecot-ldap.conf.ext
+$ chown root:dovecot /etc/dovecot/dovecot-ldap.conf.ext
 
-Attempt IMAP login via Thunderbird or openssl s_client to confirm Dovecot login via LDAP.
 
-✅ Summary
-Component	Uses LDAP for
-Postfix	Address validation
-Dovecot	Authentication/user
-System	Optionally, PAM auth
+6. Restart Services
+$ sudo systemctl restart postfix dovecot sssd
+
+
+Testing
+
+- Query LDAP manually:
+$ ldapsearch -x -b "ou=People,dc=example,dc=com" "(uid=alice)"
+
+- Send test mail to alice@example.com, verify Postfix resolves via LDAP.
+
+- Attempt IMAP login via Thunderbird or openssl s_client to confirm Dovecot login via LDAP.
+
+			Summary:
+				- Component	Uses LDAP for
+				- Postfix	Address validation
+				- Dovecot	Authentication/user
+				- System	Optionally, PAM auth
 
 
 
@@ -1232,158 +1194,129 @@ System	Optionally, PAM auth
 
 ############# Roundcube Webmail is a popular open-source web-based email client that lets users access their email through a browser, much like Gmail or Outlook Web Access, but self-hosted on your own server.
 
-🌟 Key Features of Roundcube:
-User-friendly interface: Intuitive, modern, similar to desktop mail apps.
+			Key Features of Roundcube:
+				+ User-friendly interface: Intuitive, modern, similar to desktop mail apps.
+				+ IMAP support: Connects to your Dovecot server to read mail.
+				+ SMTP support: Sends mail through your Postfix server.
+				+ Address book & contacts
+				+ Folder management
+				+ Message search
+				+ Spell checking, message threading, and filters
+				+ Plugin architecture: Extend with calendars, tasks, themes, etc.
 
-IMAP support: Connects to your Dovecot server to read mail.
-
-SMTP support: Sends mail through your Postfix server.
-
-Address book & contacts
-
-Folder management
-
-Message search
-
-Spell checking, message threading, and filters
-
-Plugin architecture: Extend with calendars, tasks, themes, etc.
-
-💡 Why Use Roundcube?
-Browser access: No need to install Thunderbird or other desktop clients.
-
-Anywhere access: Access your mail securely from any device with a browser.
-
-Multi-user support: Ideal for enterprise or shared hosting.
-
-Integration: Works smoothly with Postfix + Dovecot setups.
-
-Open source: Free, actively maintained.
-
-🛠 How It Fits Your Setup
-Users log into Roundcube via a web page.
-
-Roundcube uses IMAP (Dovecot) to fetch mail.
-
-Roundcube uses SMTP (Postfix) to send mail.
-
-Can be secured with HTTPS.
-
-Supports LDAP for user authentication if you integrate it.
+			Why Use Roundcube:
+				+ Browser access: No need to install Thunderbird or other desktop clients.
+				+ Anywhere access: Access your mail securely from any device with a browser.
+				+ Multi-user support: Ideal for enterprise or shared hosting.
+				+ Integration: Works smoothly with Postfix + Dovecot setups.
+				+ Open source: Free, actively maintained.
+			
+			How It Fits This Setup:
+				+ Users log into Roundcube via a web page.
+				+ Roundcube uses IMAP (Dovecot) to fetch mail.
+				+ Roundcube uses SMTP (Postfix) to send mail.
+				+ Can be secured with HTTPS.
+				+ Supports LDAP for user authentication if you integrate it.
 
 
 
 
 
-🖥️ Step-by-Step: Install & Configure Roundcube Webmail with LDAP Login on RHEL 9
+Step-by-Step: Install & Configure Roundcube Webmail with LDAP Login on RHEL 9
+
 1. Install Required Packages
-Roundcube isn’t in the default RHEL repos, but you can install it via EPEL or from source.
 
-Enable EPEL repo if not already:
-bash
-Copy
-Edit
-sudo dnf install epel-release -y
-sudo dnf update -y
-Install Roundcube and Apache/PHP dependencies:
-bash
-Copy
-Edit
-sudo dnf install -y roundcubemail httpd php php-ldap php-mbstring php-intl php-mysqlnd php-pdo php-zip php-gd php-curl
+- Roundcube isn’t in the default RHEL repos, but you can install it via EPEL or from source.
+
+- Enable EPEL repo if not already:
+$ sudo dnf install epel-release -y
+$ sudo dnf update -y
+
+- Install Roundcube and Apache/PHP dependencies:
+$ sudo dnf install -y roundcubemail httpd php php-ldap php-mbstring php-intl php-mysqlnd php-pdo php-zip php-gd php-curl
+
+
 2. Configure Apache Web Server
-Enable and start Apache:
-bash
-Copy
-Edit
-sudo systemctl enable --now httpd
-Configure firewall:
-bash
-Copy
-Edit
-sudo firewall-cmd --add-service=http --permanent
-sudo firewall-cmd --reload
+
+- Enable and start Apache:
+$ sudo systemctl enable --now httpd
+
+- Configure firewall:
+$ sudo firewall-cmd --add-service=http --permanent
+$ sudo firewall-cmd --reload
+
+
 3. Configure Roundcube LDAP Plugin
-Edit /etc/roundcubemail/config.inc.php
+
+- Edit /etc/roundcubemail/config.inc.php
+
 Add or modify the LDAP section:
+~ $config['ldap_public'] = array(
+~     'Example LDAP' => array(
+~         'name'          => 'Company LDAP',
+~         'hosts'         => array('ldap.example.com'),  // Your LDAP server
+~         'port'          => 389,
+~         'use_tls'       => false,                       // Change to true if LDAPS
+~         'base_dn'       => 'ou=People,dc=example,dc=com',
+~         'bind_dn'       => null,
+~         'bind_pass'     => null,
+~         'search_base'   => 'ou=People,dc=example,dc=com',
+~         'search_filter' => '(uid=%s)',
+~         'version'       => 3,
+~         'referrals'     => false,
+~         'scope'         => 'sub',
+~         'user_specific' => true,
+~         'writable'      => false,
+~     )
+~ );
 
-php
-Copy
-Edit
-$config['ldap_public'] = array(
-    'Example LDAP' => array(
-        'name'          => 'Company LDAP',
-        'hosts'         => array('ldap.example.com'),  // Your LDAP server
-        'port'          => 389,
-        'use_tls'       => false,                       // Change to true if LDAPS
-        'base_dn'       => 'ou=People,dc=example,dc=com',
-        'bind_dn'       => null,
-        'bind_pass'     => null,
-        'search_base'   => 'ou=People,dc=example,dc=com',
-        'search_filter' => '(uid=%s)',
-        'version'       => 3,
-        'referrals'     => false,
-        'scope'         => 'sub',
-        'user_specific' => true,
-        'writable'      => false,
-    )
-);
+
 4. Configure Roundcube to use IMAP + SMTP
+
 Make sure the main config points to your mail server:
+~ $config['default_host'] = 'ssl://mail.local';   // or IP of your mail server, with SSL
+~ $config['default_port'] = 993;                   // IMAPS port
+~ $config['smtp_server'] = 'tls://mail.local';    // SMTP with STARTTLS
+~ $config['smtp_port'] = 587;
 
-php
-Copy
-Edit
-$config['default_host'] = 'ssl://mail.local';   // or IP of your mail server, with SSL
-$config['default_port'] = 993;                   // IMAPS port
-$config['smtp_server'] = 'tls://mail.local';    // SMTP with STARTTLS
-$config['smtp_port'] = 587;
+
 5. Set Permissions
-Ensure web server user (apache) can read Roundcube files and log folders:
 
-bash
-Copy
-Edit
-sudo chown -R apache:apache /usr/share/roundcubemail/
-sudo chmod -R 750 /usr/share/roundcubemail/
+- Ensure web server user (apache) can read Roundcube files and log folders:
+$ sudo chown -R apache:apache /usr/share/roundcubemail/
+$ sudo chmod -R 750 /usr/share/roundcubemail/
+
+
 6. Restart Apache
-bash
-Copy
-Edit
-sudo systemctl restart httpd
+$ sudo systemctl restart httpd
+
+
 7. Access Roundcube
-Open your browser and navigate to:
-
-perl
-Copy
-Edit
+- Open your browser and navigate to:
 http://<your-server-ip-or-hostname>/roundcubemail/
+
+
 8. Test LDAP Login
-Use an LDAP user’s username and password to log in.
+	- Use an LDAP user’s username and password to log in.
+	- Roundcube uses LDAP to verify credentials.
+	- Mail is accessed via IMAP (Dovecot), mail sending via SMTP (Postfix).
 
-Roundcube uses LDAP to verify credentials.
-
-Mail is accessed via IMAP (Dovecot), mail sending via SMTP (Postfix).
 
 Optional: Enable HTTPS (Highly Recommended)
-Configure Apache with an SSL certificate (self-signed or real CA) to secure Roundcube:
 
-bash
-Copy
-Edit
-sudo dnf install mod_ssl
-sudo systemctl restart httpd
-Then configure /etc/httpd/conf.d/ssl.conf and enable port 443.
+- Configure Apache with an SSL certificate (self-signed or real CA) to secure Roundcube:
+$ sudo dnf install mod_ssl
+$ sudo systemctl restart httpd
 
-✅ Summary
-You now have:
+- Then configure /etc/httpd/conf.d/ssl.conf and enable port 443.
 
-Roundcube Webmail installed on RHEL 9
+Summary
 
-LDAP authentication for user login
-
-IMAP/SMTP integration with your mail server
-
-Web access for enterprise users
+			You now have:
+				- Roundcube Webmail installed on RHEL 9
+				- LDAP authentication for user login
+				- IMAP/SMTP integration with your mail server
+				- Web access for enterprise users
 
 
 
@@ -1392,100 +1325,94 @@ Web access for enterprise users
 
 
 
-#########  🔐 1. LDAP with TLS Client Certificates
-This setup adds mutual TLS authentication to your LDAP connections—your mail server proves its identity to the LDAP server using a client certificate, adding an extra security layer beyond username/password.
+#########  1. LDAP with TLS Client Certificates
+
+- This setup adds mutual TLS authentication to your LDAP connections—your mail server proves its identity to the LDAP server using a client certificate, adding an extra security layer beyond username/password.
 
 Step 1: Prepare TLS Client Certs
-You need a client certificate and private key issued by the LDAP CA or your own internal CA.
 
-Example files:
+- You need a client certificate and private key issued by the LDAP CA or your own internal CA.
 
-/etc/ldap/client-cert.pem (client cert)
+		Example files:
+			/etc/ldap/client-cert.pem (client cert)
+			/etc/ldap/client-key.pem (client private key)
+			/etc/ldap/ca-cert.pem (CA cert that signed LDAP server and client certs)
 
-/etc/ldap/client-key.pem (client private key)
-
-/etc/ldap/ca-cert.pem (CA cert that signed LDAP server and client certs)
 
 Step 2: Configure Dovecot LDAP with TLS Client Certs
-Edit /etc/dovecot/dovecot-ldap.conf.ext:
 
-ini
-Copy
-Edit
-hosts = ldaps://ldap.example.com
-base = ou=People,dc=example,dc=com
-dn = cn=readonly,dc=example,dc=com
-dnpass = your_bind_password
-ldap_version = 3
+- Edit /etc/dovecot/dovecot-ldap.conf.ext:
+~ hosts = ldaps://ldap.example.com
+~ base = ou=People,dc=example,dc=com
+~ dn = cn=readonly,dc=example,dc=com
+~ dnpass = your_bind_password
+~ ldap_version = 3
+~ 
+~ # TLS / SSL settings
+~ tls = yes
+~ tls_require_cert = demand
+~ tls_cert = </etc/ldap/client-cert.pem
+~ tls_key = </etc/ldap/client-key.pem
+~ tls_ca_cert_file = </etc/ldap/ca-cert.pem
+~ 
+~ user_attrs = homeDirectory=home,uidNumber=uid,gidNumber=gid
+~ user_filter = (uid=%u)
+~ pass_filter = (uid=%u)
+~ auth_bind = yes
 
-# TLS / SSL settings
-tls = yes
-tls_require_cert = demand
-tls_cert = </etc/ldap/client-cert.pem
-tls_key = </etc/ldap/client-key.pem
-tls_ca_cert_file = </etc/ldap/ca-cert.pem
 
-user_attrs = homeDirectory=home,uidNumber=uid,gidNumber=gid
-user_filter = (uid=%u)
-pass_filter = (uid=%u)
-auth_bind = yes
 Step 3: Configure Postfix LDAP with TLS Client Certs
-Create or edit /etc/postfix/ldap-users.cf:
 
-ini
-Copy
-Edit
-server_host = ldaps://ldap.example.com
-search_base = ou=People,dc=example,dc=com
-bind_dn = cn=readonly,dc=example,dc=com
-bind_pw = your_bind_password
-version = 3
-query_filter = (mail=%s)
+- Create or edit /etc/postfix/ldap-users.cf:
+~ server_host = ldaps://ldap.example.com
+~ search_base = ou=People,dc=example,dc=com
+~ bind_dn = cn=readonly,dc=example,dc=com
+~ bind_pw = your_bind_password
+~ version = 3
+~ query_filter = (mail=%s)
+~ 
+~ # TLS client certs
+~ tls_cert = /etc/ldap/client-cert.pem
+~ tls_key = /etc/ldap/client-key.pem
+~ tls_ca_cert_file = /etc/ldap/ca-cert.pem
+~ tls_require_cert = demand
 
-# TLS client certs
-tls_cert = /etc/ldap/client-cert.pem
-tls_key = /etc/ldap/client-key.pem
-tls_ca_cert_file = /etc/ldap/ca-cert.pem
-tls_require_cert = demand
+
 Step 4: Secure Permissions & Restart Services
-bash
-Copy
-Edit
-sudo chown root:postfix /etc/ldap/client-key.pem
-sudo chmod 640 /etc/ldap/client-key.pem
+$ sudo chown root:postfix /etc/ldap/client-key.pem
+$ sudo chmod 640 /etc/ldap/client-key.pem
 
-sudo chown root:dovecot /etc/ldap/client-key.pem
-sudo chmod 640 /etc/ldap/client-key.pem
+$ sudo chown root:dovecot /etc/ldap/client-key.pem
+$ sudo chmod 640 /etc/ldap/client-key.pem
 
-sudo systemctl restart postfix dovecot
-🔄 2. Failover LDAP Servers
-To ensure high availability, configure your LDAP clients (Dovecot & Postfix) with multiple LDAP server addresses.
+$ sudo systemctl restart postfix dovecot
+
+
+2. Failover LDAP Servers
+
+- To ensure high availability, configure your LDAP clients (Dovecot & Postfix) with multiple LDAP server addresses.
 
 Step 1: Configure Dovecot
-Edit /etc/dovecot/dovecot-ldap.conf.ext:
 
-ini
-Copy
-Edit
-hosts = ldaps://ldap1.example.com ldaps://ldap2.example.com
-Dovecot will try the first server, then the second if the first is unreachable.
+- Edit /etc/dovecot/dovecot-ldap.conf.ext:
+~ hosts = ldaps://ldap1.example.com ldaps://ldap2.example.com
+
+- Dovecot will try the first server, then the second if the first is unreachable.
+
 
 Step 2: Configure Postfix
-Edit /etc/postfix/ldap-users.cf:
 
-ini
-Copy
-Edit
-server_host = ldaps://ldap1.example.com ldaps://ldap2.example.com
+- Edit /etc/postfix/ldap-users.cf:
+~ server_host = ldaps://ldap1.example.com ldaps://ldap2.example.com
+
+
 Step 3: Restart Services
-bash
-Copy
-Edit
-sudo systemctl restart postfix dovecot
-✅ Summary
-Feature	Benefit
-TLS Client Certificates		Strong mutual authentication
-Failover LDAP Servers		High availability & redundancy
+$ sudo systemctl restart postfix dovecot
+
+Summary
+	Feature	Benefit:
+		- TLS Client Certificates		Strong mutual authentication
+		- Failover LDAP Servers			High availability & redundancy
 
 
 
