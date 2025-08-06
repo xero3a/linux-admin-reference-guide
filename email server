@@ -1,0 +1,1496 @@
+###########   Email Server Setup on RHEL 8.9
+
+
+1: Setup
+- Download DVD.iso Image
+- Move to desired Location
+- Verify VM manager points to new location for files
+- Hash Comparison for download verification:
+
+PowerShell >  Get-FileHash -Path ".\rhel-9.0-x86_64-dvd.iso" -Algorithm SHA256  
+~ Hash from developer site
+~ Hash "Get-FileHash" output
+
+1. Set Up VM:
+                Base VM Setup:
+                        + VM Resources (Minimum)
+                        + Component	Value
+                        + vCPU		2(operational) | 4(recommended)
+                        + RAM		4 GB | 4096 Base Memory
+                        + Storage		40  GB (SSD)
+                        + NIC		Bridged, Static
+                        + Video Memory	16 MB
+
+**Note:** - Under "System" > "Motherboard Tab" > "Boot Order" uncheck Floppy disk
+**Note:** - Uncheck Unattended Install
+
+- Start VM and Complete installation
+
+
+2. Start the VM
+
+- Boot your VM normally.
+
+- The ISO should now be mounted inside the VM as a CD/DVD.
+
+
+3. Install Guest Additions Inside the VM
+If you're using RHEL 9 and you're at the login prompt or terminal:
+
+# Become root
+$ sudo dnf install gcc kernel-devel kernel-headers make perl bzip2
+
+# Mount the ISO
+$ sudo mount /dev/cdrom /mnt
+
+# Run the installer
+$ sudo /mnt/VBoxLinuxAdditions.run
+
+# Reboot
+$ sudo reboot
+
+- Download Guest Additions ISO from Oracle:
+https://download.virtualbox.org/virtualbox/
+- Choose the version matching your VirtualBox install (e.g., 7.0.x)
+- Download VBoxGuestAdditions_7.0.x.iso
+- In VirtualBox Manager → Settings → Storage → Add Optical Drive → Choose Disk → browse to the downloaded ISO
+
+
+1. Inside the VM, open a terminal and run:
+
+For RHEL-based distros (RHEL 9):
+$ sudo dnf install -y gcc kernel-devel kernel-headers make bzip2 perl
+$ sudo mount /dev/cdrom /mnt
+$ sudo /mnt/VBoxLinuxAdditions.run
+$ sudo reboot
+
+- After reboot, mouse integration should be enabled.
+
+
+2. Verify VM is Fully Booted to Graphical Mode
+If your VM is stuck in a console (text-only) mode or installer environment, mouse integration may be unavailable.
+Complete the OS installation first, then install Guest Additions.
+
+
+3. Check VirtualBox Settings
+Make sure your VM’s OS type is set correctly (e.g., Linux > Red Hat (64-bit)).
+Update VirtualBox to the latest version.
+
+
+
+
+
+
+########### Final Steps to Enable Offline Repos
+
+1. Mount ISO (if not already)
+If /mnt/rhel9 isn't already populated:
+
+$ sudo mount /dev/sr0 /mnt/rhel9
+
+- Confirm:
+$ ls /mnt/rhel9/BaseOS/Packages
+- You should see hundreds of .rpm packages.
+
+
+2. Create the Offline .repo File
+
+- Create this repo config file:
+$ sudo tee /etc/yum.repos.d/rhel9-offline.repo << 'EOF'
+> [rhel9-baseos]
+> name=RHEL 9 BaseOS
+> baseurl=file:///mnt/rhel9/BaseOS
+> enabled=1
+> gpgcheck=0
+> <enter>
+> [rhel9-appstream]
+> name=RHEL 9 AppStream
+> baseurl=file:///mnt/rhel9/AppStream
+> enabled=1
+> gpgcheck=0
+> EOF
+
+
+3. Clean and Check Repos
+$ sudo dnf clean all
+$ sudo dnf repolist
+
+Expected output:
+$ repo id            repo name
+$ rhel9-baseos       RHEL 9 BaseOS
+$ rhel9-appstream    RHEL 9 AppStream
+
+
+4. Install Something Offline
+
+Test offline installation:
+$ sudo dnf install -y vim bash-completion net-tools
+- This proves the repo is working without internet.
+
+Tip: Auto-Mount on Boot (Optional)
+- To remount the ISO on every boot (optional for persistent setup), you could add this line to /etc/fstab:
+$ /dev/sr0 /mnt/rhel9 iso9660 ro,user,noauto 0 0
+
+- Then you can mount it manually when needed with:
+$ sudo mount /mnt/rhel9
+
+
+
+
+
+########### RHEL 9 System Hardening (Offline)
+
+- We'll go step by step — each command works offline as long as your local ISO repo is mounted.
+
+
+1. Create a Limited Admin User
+
+- Use this instead of root for daily tasks.
+$ useradd <user>
+$ passwd <user>
+$ usermod -aG wheel <user>
+
+- Now test:
+$ su - vern
+$ sudo whoami
+- You should see: root
+
+
+2. Lock Down Root Login (Optional but recommended)
+$ sudo passwd -l root
+- This prevents direct root logins. You’ll still have root via sudo.
+
+
+3. Enable and Configure the Firewall
+
+- Enable and allow services selectively:
+$ sudo systemctl enable --now firewalld
+
+- Allow SSH (if you’ll use it)
+$ sudo firewall-cmd --permanent --add-service=ssh
+$ sudo firewall-cmd --reload
+
+- To see what’s allowed:
+$ sudo firewall-cmd --list-all
+
+
+4. Set SELinux to Enforcing
+
+- Make sure SELinux is active and in enforcing mode:
+$ sestatus
+
+- If it says Permissive or Disabled, change it:
+$ sudo sed -i 's/^SELINUX=.*/SELINUX=enforcing/' /etc/selinux/config
+
+- Then reboot:
+$ sudo reboot
+
+
+5. Install Offline Audit Tools
+
+- Make sure you have essential tools:
+$ sudo dnf install audit setools setroubleshoot
+
+- Enable and start audit service:
+$ sudo systemctl enable --now auditd
+
+- Check logs later via:
+$ sudo ausearch -m avc,user_avc,selinux_err -ts recent
+
+
+6. Install System Monitoring Tools
+
+$ sudo dnf install htop ncdu
+$ htop: CPU/memory monitor
+$ ncdu: disk usage analyzer (offline)
+
+
+7. Disable Unneeded Services
+
+- List enabled services:
+$ systemctl list-unit-files --type=service --state=enabled
+
+- Disable anything not needed (example):
+$ sudo systemctl disable bluetooth.service
+
+
+8. Set Automatic Logout (Idle Users)
+- Edit /etc/profile.d/autologout.sh:
+$ sudo tee /etc/profile.d/autologout.sh <<EOF
+> export TMOUT=600
+> readonly TMOUT
+> export HISTFILESIZE=1000
+> export HISTSIZE=1000
+> EOF
+
+- This logs out idle sessions after 10 minutes.
+
+
+
+
+
+
+########### Audit Cron Job for RHEL 9
+
+                We'll create a daily cron job that logs:
+                        + New users
+                        + Sudoers changes
+                        + Open ports
+                        + Active services
+                        + Failed logins
+                        + SELinux denials
+                        + File integrity (if aide is later added)
+
+
+Step 1: Create a Script
+
+- Create a script to store audit logs in /var/log/sys_audit/.
+$ sudo mkdir -p /usr/local/bin /var/log/sys_audit
+$ sudo nano /usr/local/bin/sys_audit.sh
+
+- Populate the script:
+
+#!/bin/bash
+# System Audit Script for RHEL 9
+
+~ LOGFILE="/var/log/sys_audit/audit-$(date +%F).log"
+~
+~ {
+~     echo "== SYSTEM AUDIT REPORT: $(date) =="
+~
+~     echo -e "\n-- Logged-in Users --"
+~     who
+~
+~     echo -e "\n-- Recently Added Users (last 7 days) --"
+~     awk -F: '$3 >= 1000 { print $1 }' /etc/passwd
+~
+~     echo -e "\n-- Sudoers Config --"
+~     grep -r '^%wheel\|^root' /etc/sudoers /etc/sudoers.d/
+~
+~     echo -e "\n-- Listening Ports --"
+~     ss -tulnp
+~
+~     echo -e "\n-- Enabled Services --"
+~     systemctl list-unit-files --type=service --state=enabled
+~
+~     echo -e "\n-- Failed Login Attempts --"
+~     journalctl _COMM=sshd -p err -S -7d | grep "Failed password"
+~
+~     echo -e "\n-- SELinux Denials (last 24h) --"
+~     ausearch -m avc -ts yesterday | audit2why || echo "No AVC denials."
+~
+~     echo -e "\n-- Disk Usage --"
+~     df -h
+~ } >> "$LOGFILE"
+
+
+Step 2: Make It Executable
+$ sudo chmod +x /usr/local/bin/sys_audit.sh
+
+
+Step 3: Add Cron Job (Daily at 3AM)
+
+- Edit root's crontab:
+$ sudo crontab -e
+
+- Add a line like this:
+~ 0 3 * * * /usr/local/bin/sys_audit.sh
+
+
+Step 4: View Logs Anytime
+
+- Audit logs will be written to:
+$ /var/log/sys_audit/audit-YYYY-MM-DD.log
+
+- Example:
+$ sudo less /var/log/sys_audit/audit-2025-08-02.log
+
+
+
+
+
+########### Postfix Setup on RHEL 9 (Offline)
+                Prerequisites:
+                        + Mount ISO (if not already)
+                        + Enable local repo from ISO
+                        + Install Postfix
+                        + Basic Postfix configuration for LAN
+                        + Test local mail delivery
+
+
+1. Mount ISO (if not already)
+
+- If your .iso is mounted as a virtual CD/DVD device:
+$ sudo mkdir -p /mnt/cdrom
+$ sudo mount /dev/sr0 /mnt/cdrom
+
+- Verify it’s mounted:
+$ ls /mnt/cdrom
+
+
+2. Create Local Repo (if not already done)
+
+- Create a repo file:
+$ sudo tee /etc/yum.repos.d/rhel9-local.repo <<EOF
+> [RHEL9-Offline]
+> name=RHEL9 Local Repo
+> baseurl=file:///mnt/cdrom/BaseOS
+> enabled=1
+> gpgcheck=0
+>
+> [RHEL9-AppStream]
+> name=RHEL9 AppStream
+> baseurl=file:///mnt/cdrom/AppStream
+> enabled=1
+> gpgcheck=0
+> EOF
+
+- Then:
+$ sudo dnf clean all
+$ sudo dnf repolist
+
+
+3. Install Postfix
+$ sudo dnf install postfix mailx
+
+- Enable it:
+$ sudo systemctl enable --now postfix
+
+
+4. Configure Postfix for Local Mail
+
+- Edit main config:
+$ sudo nano /etc/postfix/main.cf
+
+- Set the following key options (minimal LAN setup):
+~ myhostname = email.server.local
+~ mydomain = server.local
+~ myorigin = $mydomain
+~ inet_interfaces = all
+~ inet_protocols = ipv4
+~ mydestination = $myhostname, localhost.$mydomain, localhost
+~ mynetworks = 127.0.0.0/8 [::1]/128
+~ relayhost =
+
+- Save and exit.
+
+- Restart Postfix:
+$ sudo systemctl restart postfix
+
+- Edit the master.cf file:
+$ sudo nano /etc/postfix/master.cf
+
+- Uncomment the lines like this:
+#submission inet n       -       n       -       -       smtpd
+#  -o syslog_name=postfix/submission
+#  -o smtpd_tls_security_level=encrypt
+#  -o smtpd_sasl_auth_enable=yes
+#  -o smtpd_tls_auth_only=yes
+#  -o smtpd_relay_restrictions=permit_sasl_authenticated,reject
+#  -o milter_macro_daemon_name=ORIGINATING
+**Note:** - You can leave out the more restrictive recipient/helo/sender restrictions until basic functionality works.
+
+- Restart Postfix:
+$ sudo systemctl restart postfix
+
+- Confirm postfix is listening:
+$ sudo ss -tuln | grep -E '25|587'
+
+
+5. Open the firewall port (only if needed):
+- If LAN clients or Thunderbird need to connect:
+
+$ sudo firewall-cmd --add-port=587/tcp --permanent
+$ sudo firewall-cmd --reload
+
+
+6. Test Local Email
+
+- Send test mail to local user:
+$ echo "This is a test email from Postfix." | mail -s "Postfix Test" <user>
+
+- Read it as that user:
+$ sudo su - <user>
+$ mail
+
+- Use q to exit the mail client.
+
+- Verify $MAIL Variable is present for notifications:
+$ echo $MAIL
+$ /var/spool/mail/$USER
+
+
+Optional: Check Postfix Status and Logs for "errors" or "failed" events
+$ sudo systemctl status postfix
+$ journalctl -xeu postfix
+
+
+
+
+
+
+########### Install & Configure Dovecot on RHEL 9 (Offline)
+
+                What This Will Enable:
+                            + Access to local mailboxes via IMAP
+                            + Optionally allow LAN clients to connect securely (later)
+                            + Used in combination with Postfix for full email flow
+
+
+Step 1: Install Dovecot from Local Repo
+
+- Assuming your ISO-based repo is still active:
+$ sudo dnf install dovecot
+
+- Enable and start the service:
+$ sudo systemctl enable --now dovecot
+
+
+Step 2: Set Mailbox Format
+
+- Dovecot supports mbox and Maildir formats. Postfix (by default) delivers to mbox at:
+                /var/spool/mail/<user>
+
+- So, in /etc/dovecot/conf.d/10-mail.conf, set:
+# mail_location = mbox:~/mail:INBOX=/var/spool/mail/%u
+
+**Note:** - This tells Dovecot where to find each user's inbox and where to store folders like 		    Sent/Drafts.
+
+- Then create the ~/mail directory for any users needing it:
+$ mkdir ~/mail
+$ chmod 700 ~/mail
+
+
+Step 3: Configure Auth
+
+- In /etc/dovecot/conf.d/10-auth.conf uncomment:
+# disable_plaintext_auth = yes
+# auth_mechanisms = plain login
+
+- Also in /etc/dovecot/conf.d/10-master.conf, under service auth {, ensure:
+service auth {
+~ unix_listener auth-userdb {
+~   mode = 0600
+~   user = postfix
+~   group = postfix
+~ }
+
+
+Step 4: Enable IMAP
+
+- Check /etc/dovecot/dovecot.conf or /etc/dovecot/conf.d/10-master.conf:
+
+- Make sure this exists uncommented:
+# protocols = imap
+
+- And in /etc/dovecot/conf.d/10-master.conf, verify the service listener:
+~ service imap-login {
+~   inet_listener imap {
+#     port = 143    # leave commented for now
+~   }
+~ }
+
+
+Step 5: Open Firewall Port (if needed)
+
+- Only if LAN access is desired (skip for pure offline/local user use):
+$ sudo firewall-cmd --add-service=imap --permanent
+$ sudo firewall-cmd --reload
+
+
+Step 6: Restart and Test
+$ sudo systemctl restart dovecot
+
+- Check logs:
+$ sudo journalctl -xeu dovecot
+
+
+Step 7: Test Dovecot IMAP (Local or LAN)
+
+- Install telnet (if needed):
+$ sudo dnf install telnet
+
+- Then from localhost:
+$ telnet localhost 143
+
+- You should see a Dovecot greeting.
+
+- Try logging in:
+$ a login $USER yourpassword
+
+- And list mailboxes:
+$ a list "" "*"
+
+- Quit with:
+$ a logout
+
+
+Optional: Use openssl to test IMAP + STARTTLS (if TLS added later)
+$ openssl s_client -connect localhost:143 -starttls imap
+
+
+
+
+
+
+########### Enable TLS for Dovecot (RHEL 9, Offline Server)
+
+Step 1: Create Self-Signed TLS Certificates (Offline Safe)
+
+- If you don't already have certs:
+$ sudo mkdir -p /etc/pki/dovecot/private
+$ sudo openssl req -new -x509 -days 3650 \
+  -nodes -out /etc/pki/dovecot/dovecot.pem \
+  -keyout /etc/pki/dovecot/private/dovecot.key \
+  -subj "/C=US/ST=State/L=City/O=Company/OU=IT/CN=mail.local"
+
+- Replace CN=mail.local with your actual domain name or hostname (important for clients like Thunderbird).
+
+- Set permissions:
+$ sudo chmod 600 /etc/pki/dovecot/private/dovecot.key
+
+
+Step 2: Configure TLS in Dovecot
+
+- Edit /etc/dovecot/conf.d/10-ssl.conf:
+~ ssl = yes
+~ ssl_cert = </etc/pki/dovecot/dovecot.pem
+~ ssl_key = </etc/pki/dovecot/private/dovecot.key
+~ ssl_protocols = !SSLv3 !TLSv1 !TLSv1.1 TLSv1.2 TLSv1.3
+~ ssl_cipher_list = HIGH:!aNULL:!MD5
+
+
+Step 3: Enable IMAPS (Port 993) and STARTTLS (on 143)
+- Edit /etc/dovecot/conf.d/10-master.conf
+
+- Ensure the following under service is uncommented:
+~ imap-login {
+~ inet_listener imap {
+~  port = 143
+~ }
+~
+~ inet_listener imaps {
+~   port = 993
+~   ssl = yes
+~ }
+
+
+Step 4: Open Firewall Ports (if LAN clients will connect)
+
+$ sudo firewall-cmd --add-service=imaps --permanent
+$ sudo firewall-cmd --add-service=imap --permanent
+$ sudo firewall-cmd --reload
+
+- If you're keeping this fully offline, skip this step.
+
+Step 5: Restart and Verify
+$ sudo systemctl restart dovecot
+$ sudo systemctl status dovecot
+
+- Check listening ports:
+$ sudo ss -tulpn | grep :993
+
+
+Step 6: Test Secure IMAP with OpenSSL
+
+- From localhost:
+$ openssl s_client -connect localhost:993
+
+- Or test STARTTLS on port 143:
+$ openssl s_client -connect localhost:143 -starttls imap
+
+- Both should return a valid TLS handshake with your cert.
+
+                You now have:
+                        - Port 993 for encrypted IMAP
+                        - Port 143 with STARTTLS support
+                        - Self-signed certs (sufficient for testing and LAN use)
+
+
+
+
+
+
+
+
+
+
+
+
+########## Step-by-Step: Thunderbird + Mail Client Configuration
+
+1. Install Thunderbird on the Client Machine
+
+- For Windows/macOS:
+        - Download and install from: https://www.thunderbird.net
+
+- For Linux:
+$ sudo dnf install thunderbird          # RHEL/Fedora
+$ sudo apt install thunderbird          # Debian/Ubuntu
+
+
+2. Gather Connection Info
+
+- Assume your server is:
+                - Hostname/IP: 192.168.122.10
+                - Email domain: mail.local
+                - Linux user: <user> (you can use this as your mail user too)
+                - TLS enabled on IMAP (993) and SMTP (587)
+
+
+3. Create a Mail User (if needed)
+
+- On your RHEL 9 VM:
+$ sudo adduser <user>
+$ sudo passwd <user>
+
+- Verify mail directory exists:
+$ ls /var/mail/<user>
+
+
+4. Add Account in Thunderbird (GUI-based)
+
+- Open Thunderbird → Add Mail Account:
+$ thunderbird
+
+                Field			Value
+                Name			<user>
+                Email Address		<user>@mail.local
+                Password		(same as Linux user)
+
+- Click Manual Config, and set the following:
+
+                Setting			IMAP			SMTP
+                Server			192.168.122.10		192.168.122.10
+                Port			143			587
+                Security		SSL/TLS			STARTTLS
+                Authentication		Normal Password		Normal Password
+                Username		user			user
+
+- Click "Done"
+
+
+
+🧪 5. Test Mail Loop
+
+In Thunderbird:
+
+Compose a message to <user>@mail.local
+		- Subject: Test from Thunderbird
+		- Body: anything
+		- Click Send
+	Then:
+		- Check inbox
+		- If your mail server is configured correctly, the message will appear shortly
+
+📂 6. (Optional) Enable Maildir for Dovecot
+
+If you prefer Maildir over mbox (recommended for performance), we can convert and reconfigure.
+
+🧾 Summary
+✅ You've now:
+
+		- Installed Thunderbird
+		- Connected it to your offline RHEL 9 mail server
+		- Verified mail sending/receiving over encrypted channels
+
+
+
+
+
+
+
+
+
+##########  let’s now create multiple mail users on your RHEL 9 server and enforce mail quotas, so your Postfix + Dovecot setup is ready for multi-user operation and storage control.
+
+👥 Step 1: Create Mail Users
+
+For a simple setup (local delivery with /var/mail/USERNAME or Maildir), system users double as mail users.
+
+➕ Create Users:
+$ sudo adduser <user>
+$ sudo passwd <user>
+
+$ sudo adduser <user>
+$ sudo passwd <user>
+
+Each user now has:
+
+		- A system account
+		- A mailbox at /var/mail/alice (or ~/Maildir if configured)
+
+
+📦 Step 2: Enable Maildir Format (Optional but Recommended)
+
+Using Maildir (instead of traditional mbox) improves performance and supports quotas better.
+
+🧾 Modify /etc/dovecot/conf.d/10-mail.conf
+mail_location = maildir:~/Maildir
+
+🔄 Restart Dovecot:
+$ sudo systemctl restart dovecot
+
+🛠 Create Maildir for Existing Users:
+$ sudo doveadm mailbox create -u alice INBOX
+$ sudo doveadm mailbox create -u bob INBOX
+
+**Note:** - Or log in as the user and send a test mail to trigger automatic creation.
+
+
+📏 Step 3: Set Mailbox Quotas with Dovecot
+
+1. Edit /etc/dovecot/conf.d/10-mail.conf:
+
+mail_plugins = quota
+
+2. Edit /etc/dovecot/conf.d/10-master.conf (service auth section):
+  unix_listener auth-userdb {
+    mode = 0600
+    user = vmail
+    group = vmail
+  }
+
+(If you’re using system users, you can skip vmail)
+
+
+3. Configure Quota in /etc/dovecot/conf.d/90-quota.conf
+
+plugin {
+  quota = maildir:User quota
+  quota_rule = *:storage=100MB
+  quota_rule2 = Trash:storage=10%%
+}
+protocol imap {
+  mail_plugins = $mail_plugins imap_quota
+}
+
+This limits all users to 100MB, and restricts Trash to 10% of quota.
+
+🔄 Restart Dovecot Again:
+sudo systemctl restart dovecot
+
+✅ Verify Quotas
+$ sudo doveadm quota get -u alice
+
+You'll see current usage and limits.
+
+
+🔐 (Optional): Prevent Shell Access
+To make users email-only (no shell login):
+
+$ sudo usermod -s /sbin/nologin alice
+
+
+
+
+
+
+
+
+############  📬 What Are Aliases & Forwarding?
+Aliases: Map one email address to another (e.g., admin@mail.local → alice)
+
+Forwarding: Automatically send incoming mail to another user or external address
+
+🛠 Step 1: Configure /etc/aliases
+This is the standard system-wide alias file used by Postfix.
+
+Example:
+# /etc/aliases
+
+root:       alice
+admin:      bob
+support:    alice
+webmaster:  vern
+
+Apply the changes:
+$ sudo newaliases
+
+This compiles the aliases into /etc/aliases.db, which Postfix reads.
+
+
+🔁 Step 2: Per-User Forwarding via .forward
+
+Each user can create a .forward file in their home directory to redirect mail.
+
+Example (forward all of Alice’s mail to Bob):
+$ echo "bob" > /home/alice/.forward
+$ chown alice:alice /home/alice/.forward
+$ chmod 644 /home/alice/.forward
+
+Or forward to external email:
+$ echo "user@example.com" > /home/alice/.forward
+
+Postfix must allow forwarding to external destinations (depends on your relay settings).
+
+📥 Step 3: Enable and Reload Postfix
+
+If not already done:
+$ sudo systemctl enable --now postfix
+$ sudo systemctl reload postfix
+
+
+🧪 Step 4: Test Alias and Forwarding
+
+From Thunderbird or local mail client:
+$ echo "Test message" | mail -s "Alias test" admin@mail.local
+
+Check that bob receives the message as expected.
+
+📂 Optional: Virtual Alias Maps (Advanced)
+
+If you plan to host multiple domains or want aliases independent of local users:
+
+Example in /etc/postfix/virtual:
+
+info@mail.local       alice
+helpdesk@mail.local   bob
+sales@mail.local      sales@example.com
+
+Then configure Postfix:
+$ sudo postmap /etc/postfix/virtual
+
+And in /etc/postfix/main.cf:
+
+virtual_alias_domains = mail.local
+virtual_alias_maps = hash:/etc/postfix/virtual
+
+Reload:
+$ sudo systemctl reload postfix
+
+
+✅ Summary
+
+	You’ve now enabled:
+			- 📨 System-wide aliases with /etc/aliases
+			- 🔁 Per-user forwarding with ~/.forward
+			-📦 (Optional) virtual alias maps for more complex setups
+
+
+
+
+
+
+
+
+########## To set up per-user or group quotas for mail storage in your Postfix + Dovecot setup on RHEL 9, we’ll use Dovecot’s quota plugin. You've already enabled general quotas, so now we’ll refine that with more granular control.
+
+
+📦 Mail Quota Recap
+
+Dovecot supports:
+
+		- 🧍‍♂️ Per-user quotas
+		- 👥 Group quotas
+		- 📁 Quotas per folder (e.g., limit Trash)
+
+
+✅ Prerequisites (Already Done, Recap)
+
+Ensure your system is using:
+Maildir format (not mbox)
+Dovecot quota plugin enabled in:
+/etc/dovecot/conf.d/10-mail.conf
+/etc/dovecot/conf.d/90-quota.conf
+
+You likely have:
+plugin {
+  quota = maildir:User quota
+  quota_rule = *:storage=100MB
+  quota_rule2 = Trash:storage=10%%
+}
+
+
+👤 Step 1: Set Per-User Quotas
+
+Create a file /etc/dovecot/users_quota:
+alice:storage=100MB
+bob:storage=250MB
+charlie:storage=500MB
+
+Then edit /etc/dovecot/conf.d/90-quota.conf:
+plugin {
+  quota = maildir:User quota
+  quota_dict = file:/var/lib/dovecot/quota
+
+  quota_rule = *:storage=100MB
+
+  quota_rule2 = Trash:storage=10%%
+
+  quota_grace = 10%%
+}
+
+dict {
+  quota = file:/var/lib/dovecot/quota
+}
+
+But Dovecot doesn't natively read per-user quotas from a file. To truly enforce different limits per user, use the userdb extra fields method.
+
+
+🔧 Method: Define per-user quota in Dovecot's passwd or custom userdb
+Option A: If you're using /etc/passwd (system users), override with Dovecot userdb:
+
+Create a file: /etc/dovecot/userdb:
+
+alice:{PLAIN}x:1000:1000::/home/alice::userdb_quota_rule=*:storage=100M
+bob:{PLAIN}x:1001:1001::/home/bob::userdb_quota_rule=*:storage=250M
+
+And tell Dovecot to use this userdb in /etc/dovecot/conf.d/auth-system.conf.ext:
+userdb {
+  driver = passwd-file
+  args = /etc/dovecot/userdb
+}
+
+Restart Dovecot:
+$ sudo systemctl restart dovecot
+
+
+👥 Step 2: Configure Group Quotas (Optional)
+
+To apply the same quota for a group (e.g., all users in mailusers group):
+
+Add a group and assign users:
+$ sudo groupadd mailusers
+$ sudo usermod -aG mailusers alice
+$ sudo usermod -aG mailusers bob
+
+Update 90-quota.conf:
+plugin {
+  quota = maildir:User quota
+  quota_rule = *:storage=100MB
+  quota_rule_group = mailusers:storage=250MB
+}
+
+This sets a default 100MB, but users in mailusers get 250MB.
+
+
+🔍 Step 3: View and Test Quotas
+Check user quota:
+$ sudo doveadm quota get -u alice
+
+Send test mail to fill quota:
+
+dd if=/dev/zero bs=1024 count=10240 | mail -s "Quota Test" alice
+
+
+✅ Summary
+		- Type:			Method
+		- Per-user:		Dovecot userdb with userdb_quota_rule
+		- Group:		Group-based rules via quota_rule_group
+		- Folder rule:		e.g. Trash limited to 10%
+
+
+
+
+
+
+
+
+######### To automatically warn users when their mail quota is nearly full or exceeded, we can configure Dovecot to send quota warning emails using its built-in quota_warning feature.
+
+📣 Overview: Quota Warning Notifications
+Dovecot can trigger a custom script when a user reaches a certain percentage of their quota.
+
+Typical warning thresholds:
+	- 🔔 80% usage – Warning
+	- ❗ 95% usage – Urgent warning
+	- ⛔ 100% – Quota exceeded (mail may be rejected)
+
+
+🧩 Step-by-Step Setup
+
+✅ 1. Enable Quota Warnings in Dovecot
+Edit /etc/dovecot/conf.d/90-quota.conf:
+plugin {
+  quota = maildir:User quota
+
+  # Thresholds and the command to run when hit
+  quota_warning = storage=80%% quota-warning 80 %u
+  quota_warning2 = storage=95%% quota-warning 95 %u
+  quota_warning3 = storage=100%% quota-warning 100 %u
+
+  quota_grace = 10%%
+}
+
+
+✅ 2. Define the Quota Warning Service
+
+Edit /etc/dovecot/conf.d/90-quota.conf again (add this block outside the plugin section):
+service quota-warning {
+  executable = script /usr/local/bin/quota-warning.sh
+  user = dovecot
+  unix_listener quota-warning {
+  }
+}
+
+
+✅ 3. Create the Warning Script
+
+Create /usr/local/bin/quota-warning.sh:
+#!/bin/bash
+
+PERCENT="$1"
+USER="$2"
+
+MAIL_CMD="/usr/lib/sendmail -t"
+
+cat <<EOF | $MAIL_CMD
+To: $USER
+Subject: Mail Quota Warning - ${PERCENT}%
+
+Your mailbox has reached ${PERCENT}% of its quota.
+
+Please clean up old or unnecessary emails to avoid mail delivery issues.
+
+Thank you.
+EOF
+
+🛠️ Adjust the script for your mailer if you're not using sendmail. For Postfix + local delivery, this will work.
+
+Make it executable:
+sudo chmod +x /usr/local/bin/quota-warning.sh
+
+
+✅ 4. Restart Dovecot
+sudo systemctl restart dovecot
+
+
+✅ 5. Test
+
+You can simulate the warning trigger using doveadm:
+
+$ doveadm quota recalc -u alice
+$ doveadm quota get -u alice
+
+Then fill mailbox with test mail to reach threshold and watch for the alert email.
+
+
+✅ Optional: Log the Warnings
+
+Modify the script to also log warnings:
+echo "$(date) - $USER reached ${PERCENT}%" >> /var/log/dovecot-quota-warnings.log
+
+
+✅ Summary
+	Threshold	Trigger				Action Taken
+	80%		quota-warning 80 %u		Send gentle warning email
+	95%		quota-warning 95 %u		Send urgent quota alert
+	100%		quota-warning 100 %u		May reject new mail (if enforced)
+
+
+
+
+
+
+
+
+
+######## integrating LDAP with your RHEL-based Postfix + Dovecot mail server is the right move for enterprise-scale user management. LDAP (e.g., OpenLDAP or Active Directory) centralizes authentication, user lookup, and even mailbox routing.
+
+🎯 Objectives
+
+✅ The purpose of LDAP:
+
+	- User authentication in Dovecot
+	- Recipient lookup and routing in Postfix
+	- Optional: fetch aliases, forwarding rules, etc.
+
+
+🧩 Prerequisites
+Working LDAP or AD server (OpenLDAP or Windows AD)
+
+ldap-utils, nss-pam-ldapd, libnss-ldap, libpam-ldap packages (or sssd for AD)
+
+Mail users exist in LDAP (uid, mail, homeDirectory at a minimum)
+
+🛠️ Step-by-Step LDAP Integration
+✅ 1. Install LDAP Client Tools
+bash
+Copy
+Edit
+sudo dnf install -y openldap openldap-clients nss-pam-ldapd
+Or if integrating with Active Directory, use:
+
+bash
+Copy
+Edit
+sudo dnf install -y sssd realmd oddjob oddjob-mkhomedir adcli samba-common
+✅ 2. Configure LDAP Base Bind
+Use authselect to configure LDAP auth (or use realm join for AD):
+
+bash
+Copy
+Edit
+sudo authselect select sssd with-mkhomedir --force
+Then configure /etc/sssd/sssd.conf for LDAP or AD.
+
+🔐 Secure with TLS/LDAPS. Set:
+
+ini
+Copy
+Edit
+ldap_uri = ldaps://ldap.example.com
+✅ 3. Configure Postfix to Use LDAP for Address Lookup
+Create /etc/postfix/ldap-users.cf:
+
+ini
+Copy
+Edit
+server_host = ldap.example.com
+search_base = ou=People,dc=example,dc=com
+bind = no
+version = 3
+query_filter = (mail=%s)
+result_attribute = uid
+Then update Postfix main.cf:
+
+ini
+Copy
+Edit
+local_recipient_maps = ldap:/etc/postfix/ldap-users.cf
+✅ 4. Configure Dovecot to Authenticate via LDAP
+Install the auth module:
+
+bash
+Copy
+Edit
+sudo dnf install dovecot-pigeonhole dovecot-ldap
+Edit /etc/dovecot/conf.d/10-auth.conf:
+
+ini
+Copy
+Edit
+disable_plaintext_auth = yes
+auth_mechanisms = plain login
+
+!include auth-ldap.conf.ext
+Then configure /etc/dovecot/conf.d/auth-ldap.conf.ext:
+
+ini
+Copy
+Edit
+passdb {
+  driver = ldap
+  args = /etc/dovecot/dovecot-ldap.conf.ext
+}
+
+userdb {
+  driver = ldap
+  args = /etc/dovecot/dovecot-ldap.conf.ext
+}
+✅ 5. Create /etc/dovecot/dovecot-ldap.conf.ext
+ini
+Copy
+Edit
+hosts = ldap.example.com
+dn = cn=readonly,dc=example,dc=com
+dnpass = secret_password
+ldap_version = 3
+base = ou=People,dc=example,dc=com
+user_attrs = homeDirectory=home,uidNumber=uid,gidNumber=gid
+user_filter = (uid=%u)
+pass_filter = (uid=%u)
+auth_bind = yes
+✅ Set auth_bind = yes to allow users to authenticate with their own credentials.
+
+Secure the file:
+
+bash
+Copy
+Edit
+chmod 600 /etc/dovecot/dovecot-ldap.conf.ext
+chown root:dovecot /etc/dovecot/dovecot-ldap.conf.ext
+✅ 6. Restart Services
+bash
+Copy
+Edit
+sudo systemctl restart postfix dovecot sssd
+🔎 Testing
+Query LDAP manually:
+
+bash
+Copy
+Edit
+ldapsearch -x -b "ou=People,dc=example,dc=com" "(uid=alice)"
+Send test mail to alice@example.com, verify Postfix resolves via LDAP.
+
+Attempt IMAP login via Thunderbird or openssl s_client to confirm Dovecot login via LDAP.
+
+✅ Summary
+Component	Uses LDAP for
+Postfix	Address validation
+Dovecot	Authentication/user
+System	Optionally, PAM auth
+
+
+
+
+
+
+
+
+############# Roundcube Webmail is a popular open-source web-based email client that lets users access their email through a browser, much like Gmail or Outlook Web Access, but self-hosted on your own server.
+
+🌟 Key Features of Roundcube:
+User-friendly interface: Intuitive, modern, similar to desktop mail apps.
+
+IMAP support: Connects to your Dovecot server to read mail.
+
+SMTP support: Sends mail through your Postfix server.
+
+Address book & contacts
+
+Folder management
+
+Message search
+
+Spell checking, message threading, and filters
+
+Plugin architecture: Extend with calendars, tasks, themes, etc.
+
+💡 Why Use Roundcube?
+Browser access: No need to install Thunderbird or other desktop clients.
+
+Anywhere access: Access your mail securely from any device with a browser.
+
+Multi-user support: Ideal for enterprise or shared hosting.
+
+Integration: Works smoothly with Postfix + Dovecot setups.
+
+Open source: Free, actively maintained.
+
+🛠 How It Fits Your Setup
+Users log into Roundcube via a web page.
+
+Roundcube uses IMAP (Dovecot) to fetch mail.
+
+Roundcube uses SMTP (Postfix) to send mail.
+
+Can be secured with HTTPS.
+
+Supports LDAP for user authentication if you integrate it.
+
+
+
+
+
+🖥️ Step-by-Step: Install & Configure Roundcube Webmail with LDAP Login on RHEL 9
+1. Install Required Packages
+Roundcube isn’t in the default RHEL repos, but you can install it via EPEL or from source.
+
+Enable EPEL repo if not already:
+bash
+Copy
+Edit
+sudo dnf install epel-release -y
+sudo dnf update -y
+Install Roundcube and Apache/PHP dependencies:
+bash
+Copy
+Edit
+sudo dnf install -y roundcubemail httpd php php-ldap php-mbstring php-intl php-mysqlnd php-pdo php-zip php-gd php-curl
+2. Configure Apache Web Server
+Enable and start Apache:
+bash
+Copy
+Edit
+sudo systemctl enable --now httpd
+Configure firewall:
+bash
+Copy
+Edit
+sudo firewall-cmd --add-service=http --permanent
+sudo firewall-cmd --reload
+3. Configure Roundcube LDAP Plugin
+Edit /etc/roundcubemail/config.inc.php
+Add or modify the LDAP section:
+
+php
+Copy
+Edit
+$config['ldap_public'] = array(
+    'Example LDAP' => array(
+        'name'          => 'Company LDAP',
+        'hosts'         => array('ldap.example.com'),  // Your LDAP server
+        'port'          => 389,
+        'use_tls'       => false,                       // Change to true if LDAPS
+        'base_dn'       => 'ou=People,dc=example,dc=com',
+        'bind_dn'       => null,
+        'bind_pass'     => null,
+        'search_base'   => 'ou=People,dc=example,dc=com',
+        'search_filter' => '(uid=%s)',
+        'version'       => 3,
+        'referrals'     => false,
+        'scope'         => 'sub',
+        'user_specific' => true,
+        'writable'      => false,
+    )
+);
+4. Configure Roundcube to use IMAP + SMTP
+Make sure the main config points to your mail server:
+
+php
+Copy
+Edit
+$config['default_host'] = 'ssl://mail.local';   // or IP of your mail server, with SSL
+$config['default_port'] = 993;                   // IMAPS port
+$config['smtp_server'] = 'tls://mail.local';    // SMTP with STARTTLS
+$config['smtp_port'] = 587;
+5. Set Permissions
+Ensure web server user (apache) can read Roundcube files and log folders:
+
+bash
+Copy
+Edit
+sudo chown -R apache:apache /usr/share/roundcubemail/
+sudo chmod -R 750 /usr/share/roundcubemail/
+6. Restart Apache
+bash
+Copy
+Edit
+sudo systemctl restart httpd
+7. Access Roundcube
+Open your browser and navigate to:
+
+perl
+Copy
+Edit
+http://<your-server-ip-or-hostname>/roundcubemail/
+8. Test LDAP Login
+Use an LDAP user’s username and password to log in.
+
+Roundcube uses LDAP to verify credentials.
+
+Mail is accessed via IMAP (Dovecot), mail sending via SMTP (Postfix).
+
+Optional: Enable HTTPS (Highly Recommended)
+Configure Apache with an SSL certificate (self-signed or real CA) to secure Roundcube:
+
+bash
+Copy
+Edit
+sudo dnf install mod_ssl
+sudo systemctl restart httpd
+Then configure /etc/httpd/conf.d/ssl.conf and enable port 443.
+
+✅ Summary
+You now have:
+
+Roundcube Webmail installed on RHEL 9
+
+LDAP authentication for user login
+
+IMAP/SMTP integration with your mail server
+
+Web access for enterprise users
+
+
+
+
+
+
+
+
+#########  🔐 1. LDAP with TLS Client Certificates
+This setup adds mutual TLS authentication to your LDAP connections—your mail server proves its identity to the LDAP server using a client certificate, adding an extra security layer beyond username/password.
+
+Step 1: Prepare TLS Client Certs
+You need a client certificate and private key issued by the LDAP CA or your own internal CA.
+
+Example files:
+
+/etc/ldap/client-cert.pem (client cert)
+
+/etc/ldap/client-key.pem (client private key)
+
+/etc/ldap/ca-cert.pem (CA cert that signed LDAP server and client certs)
+
+Step 2: Configure Dovecot LDAP with TLS Client Certs
+Edit /etc/dovecot/dovecot-ldap.conf.ext:
+
+ini
+Copy
+Edit
+hosts = ldaps://ldap.example.com
+base = ou=People,dc=example,dc=com
+dn = cn=readonly,dc=example,dc=com
+dnpass = your_bind_password
+ldap_version = 3
+
+# TLS / SSL settings
+tls = yes
+tls_require_cert = demand
+tls_cert = </etc/ldap/client-cert.pem
+tls_key = </etc/ldap/client-key.pem
+tls_ca_cert_file = </etc/ldap/ca-cert.pem
+
+user_attrs = homeDirectory=home,uidNumber=uid,gidNumber=gid
+user_filter = (uid=%u)
+pass_filter = (uid=%u)
+auth_bind = yes
+Step 3: Configure Postfix LDAP with TLS Client Certs
+Create or edit /etc/postfix/ldap-users.cf:
+
+ini
+Copy
+Edit
+server_host = ldaps://ldap.example.com
+search_base = ou=People,dc=example,dc=com
+bind_dn = cn=readonly,dc=example,dc=com
+bind_pw = your_bind_password
+version = 3
+query_filter = (mail=%s)
+
+# TLS client certs
+tls_cert = /etc/ldap/client-cert.pem
+tls_key = /etc/ldap/client-key.pem
+tls_ca_cert_file = /etc/ldap/ca-cert.pem
+tls_require_cert = demand
+Step 4: Secure Permissions & Restart Services
+bash
+Copy
+Edit
+sudo chown root:postfix /etc/ldap/client-key.pem
+sudo chmod 640 /etc/ldap/client-key.pem
+
+sudo chown root:dovecot /etc/ldap/client-key.pem
+sudo chmod 640 /etc/ldap/client-key.pem
+
+sudo systemctl restart postfix dovecot
+🔄 2. Failover LDAP Servers
+To ensure high availability, configure your LDAP clients (Dovecot & Postfix) with multiple LDAP server addresses.
+
+Step 1: Configure Dovecot
+Edit /etc/dovecot/dovecot-ldap.conf.ext:
+
+ini
+Copy
+Edit
+hosts = ldaps://ldap1.example.com ldaps://ldap2.example.com
+Dovecot will try the first server, then the second if the first is unreachable.
+
+Step 2: Configure Postfix
+Edit /etc/postfix/ldap-users.cf:
+
+ini
+Copy
+Edit
+server_host = ldaps://ldap1.example.com ldaps://ldap2.example.com
+Step 3: Restart Services
+bash
+Copy
+Edit
+sudo systemctl restart postfix dovecot
+✅ Summary
+Feature	Benefit
+TLS Client Certificates		Strong mutual authentication
+Failover LDAP Servers		High availability & redundancy
+
+
+
+
+
+
+
+
