@@ -9,10 +9,10 @@ This document outlines the system security measures implemented during the Linux
 - Set SELinux to **enabled** and **enforcing** mode.
 ```
 $ getenforce
->			You’ll see one of:
->					Enforcing → Already enabled
->					Permissive → Enabled but not enforcing
->					Disabled → Not active at all
+			You’ll see one of:
+					Enforcing → Already enabled
+					Permissive → Enabled but not enforcing
+					Disabled → Not active at all
 ```
 - Check current configuration
 ```
@@ -129,13 +129,13 @@ $ sudo usermod -aG <group> <username>
 ```
 $ groups <username>
 ```
-- Managed privileges by editing sudoers file:
+- Manage privileges by editing sudoers file:
 ```
 $ sudo visudo
 ```
 
 #### User added to wheel group
-- Locked and disabled user accounts when necessary
+- Lock and disable user accounts when necessary
 ```
 $ sudo passwd -l root		   # Locks the root account for security purposes
 $ sudo usermod -L <username>   # Locks accounts
@@ -145,19 +145,32 @@ $ sudo usermod -U <username>   # Unlocks accounts
 
 ### SSH Hardening
 - Disabled root login over SSH to prevent direct root access:
+```
 $ sudo nano /etc/ssh/sshd_config
-	~ Set: PermitRootLogin no
+
+~ Set: PermitRootLogin no
+```
 - Disable pasword authentication to enfore key-based login
+```
 $ sudo nano /etc/ssh/sshd_config
-	~ Set: PasswordAuthentication no
+~ Set: PasswordAuthentication no
+```
 - Ensure only public key authentication is allowed
+```
+
+```
 - Reload SSH target service
+```
 $ sudo systemctl reload sshd
+```
 - Created SSH key pair using secure alghorithm
+```
 $ ssh-keygen -t <key_type> -C "user.email@example.com"
+```
 - Copied public key to authorized keys
+```
 $ ssh-copy-id user@hostname
-- Verified SSH login works without password
+```
 
 
 
