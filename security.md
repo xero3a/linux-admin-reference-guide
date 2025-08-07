@@ -4,82 +4,146 @@ This document outlines the system security measures implemented during the Linux
 
 ---
 
-##### SELinux Status
+### SELinux Status
 
-- SELinux is enabled and set to **enforcing** mode.
-- Configuration checked with:
+- Set SELinux to **enabled** and **enforcing** mode.
+```
+$ getenforce
+>			You’ll see one of:
+>					Enforcing → Already enabled
+>					Permissive → Enabled but not enforcing
+>					Disabled → Not active at all
+```
+- Check current configuration
+```
 $ sestatus
-- Config file verified:
-  a. /etc/selinux/config
+```
+- Configuration checked with:
+```
+$ sestatus
+```
+- Edit the SELinux config file
+```
+$ sudo nano /etc/selinux/config
+```
+- Modify/Uncomment line:
+```
+~ SELINUX=enforcing
+```
+> Final Result:
+```
+SELINUX=enforcing
+SELINUXTYPE=targeted
+```
+> Save, Exit, & Reboot
 
-# User & Access management 
+- Config file verified:
+		```/etc/selinux/config```
+
+### User & Access management 
 - Root SSH login disabled
+```
 $ sudo nano /etc/ssh/sshd_config
-	~ #PermitRootLogin no
+~ PermitRootLogin no
+```
 - Password Authentication disabled for SSH
 - Public Key Authentication Permitted
 - SSH Key pair generated
+```
 $ ssh-keygen -t <key_type>
+```
 - SSH public key added to GitHub via web UI
 
 
 
-##### Firewall Configuration
+### Firewall Configuration
 
-Configured `firewalld` as the primary firewall management tool.
+> Previously configured `firewalld` as the primary firewall management tool.
 
-# Installation & Enablement
+### Installation & Enablement
+```
 $ sudo dnf install firewalld -y
 $ sudo systemctl enable firewalld
 $ sudo systemctl start firewalld
-# Basic usage
+```
+
+
+### Basic usage
 - Checking Status
+```
 $ sudo firewall-cmd --state
 $ sudo systemctl status firewalld
+```
 - Viewing default zones
+```
 $ sudo firewall-cmd --get-default-zone
+```
 - List active zones and rules
+```
 $ sudo firewall-cmd --list-all-zones
 $ sudo firewall-cmd --get-zones
 $ sudo firewall-cmd --get-active-zones
+```
 
-# Common Tasks
+
+### Common Tasks
 - Add a service (permanent)
+```
 $ sudo firewall-cmd --zone=public --add-service=ssh --permanent
+```
 - Applying changes
+```
 $ firewall-cmd --reload
+```
 - Opening ports
+```
 $ sudo firewall-cmd --zone=public --add-port=8080/tcp
+```
 - Allowing necessary services
+```
 $ sudo firewall-cmd --permanent --add-service=ssh
 $ sudo firewall-cmd --permanent --add-service=http
+```
 - Removing unnecesssary services
+```
 $ sudo firewall-cmd --permanent --remove -service=dhcpv6-client
 $ sudo firewall-cmd --reload
 $ sudo firewall-cmd --list-all
+```
 
 
-
-##### User and Group Management
+### User and Group Management
 - Created non-root user accounts using:
+```
 $ sudo adduser <username>
+```
 - Set password for users
+```
 $ sudo passwd <username>
+```
 - Added users/groups for permission management
+```
 $ sudo usermod -aG <group> <username>
+```
 - Verify user group assignments
+```
 $ groups <username>
+```
 - Managed privileges by editing sudoers file:
+```
 $ sudo visudo
+```
 
-# User added to wheel group
+#### User added to wheel group
 - Locked and disabled user accounts when necessary
-$ sudo usermod -L <username>
-$ sudo usermod -U <username>
+```
+$ sudo passwd -l root		   # Locks the root account for security purposes
+$ sudo usermod -L <username>   # Locks accounts
+$ sudo usermod -U <username>   # Unlocks accounts
+```
 
 
-
-##### SSH Hardening
+### SSH Hardening
 - Disabled root login over SSH to prevent direct root access:
 $ sudo nano /etc/ssh/sshd_config
 	~ Set: PermitRootLogin no
@@ -97,7 +161,7 @@ $ ssh-copy-id user@hostname
 
 
 
-##### SELinux Advanced Tips
+### SELinux Advanced Tips
 
 - SELinux enforces Mandatory Access Control (MAC) policies, restricting what processes can do.
 - Common modes:
@@ -119,9 +183,9 @@ $ semodule -i mypol.pp
   a. check /var/log/audit/audit.log
   b. check /var/log/messages
 
-# Custom SELinux Policy Module
+### Custom SELinux Policy Module
 
-# In some cases, default SELinux policies do not permit required operations. A custom policy can be written and installed to allow specific actions.
+> In some cases, default SELinux policies do not permit required operations. A custom policy can be written and installed to allow specific actions.
 
 - Created a policy source file:
 $ nano mypol.te
@@ -141,11 +205,11 @@ $ semodule_package -o mypol.pp -m mypol.mod
 - Installed the policy:
 $ semodule -i mypol.pp
 
-# This approach can be expanded to handle other denials by inspecting logs (e.g., using `audit2allow`)
+> This approach can be expanded to handle other denials by inspecting logs (e.g., using `audit2allow`)
 
 
 
-##### Service Hardening
+### Service Hardening
 - Listed all enabled services:
 $ sudo systemctl list-unit-files --state=enabled
 - Disable unnecessary service
@@ -156,7 +220,7 @@ $ sudo systemctl stop <service>
 
 
 
-##### Log Auditing
+### Log Auditing
 - `auditd` provides detailed logging of system calls and security-relevant events.
 
 - Install auditd if not already installed:
@@ -175,39 +239,39 @@ $ sudo ausearch -ts recent
 
 
 
-##### Intrusion Detection (AIDE)
+### Intrusion Detection (AIDE)
 - AIDE (Advanced Intrusion Detection Environment) is a host-based intrusion detection system that 
   creates a database of files and their attributes. It can detect unauthorized changes to the 
   system by comparing the current state with the baseline.
 
-# Installation
+#### Installation
 $ sudo dnf install aide
 
-# Initialization
+#### Initialization
 - Create Database
 $ aide --init
 - Moved to proper directory
 $ mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.bd.gz
 
-# Manual Checks
+##### Manual Checks
 - Verifying baseline changes
 $ aide --check
 
-# Database Updates
+#### Database Updates
 $ aide --update
 $ mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
 
-# Automate AIDE Checks
+#### Automate AIDE Checks
 $ crontab -e
 	~ 0 1 * * * /usr/sbin/aide --check
 
 
 
-##### Port Scanning & Enumeration Defense
+### Port Scanning & Enumeration Defense
 
-Attackers often begin with reconnaissance, using tools like `nmap` to discover open ports and services. Hardening the system against such scans is a key part of proactive security.
+> Attackers often begin with reconnaissance, using tools like `nmap` to discover open ports and services. Hardening the system against such scans is a key part of proactive security.
 
-# Reduce Open Ports
+#### Reduce Open Ports
 
 - Keep only necessary services running and listening:
 $ ss -tuln  # View listening ports
@@ -233,9 +297,9 @@ $ net.ipv4.conf.all.accept_source_route = 0
 $ sudo sysctl -p
 
 
-##### Fail2Ban Intrusion Prevention
+### Fail2Ban Intrusion Prevention
 
-# Fail2Ban is a log-parsing tool that monitors system logs for patterns of failed login attempts and blocks the offending IP addresses via firewall rules.
+> Fail2Ban is a log-parsing tool that monitors system logs for patterns of failed login attempts and blocks the offending IP addresses via firewall rules.
 
 # Installation
 - Fail2Ban can be installed from the EPEL repository:
@@ -243,7 +307,7 @@ $ sudo dnf install fail2ban fail2ban-firewalld -y
 - Enable and Start service
 $ sudo systemctl enable --now fail2ban
 
-# Basic Configuration
+#### Basic Configuration
 - Default config file /etc/fail2ban/jail/locl
 	~ [sshd]
 		enabled = true
@@ -253,7 +317,7 @@ $ sudo systemctl enable --now fail2ban
 		maxretry = 5
 		bantime = 3600
 
-# Firewalld Integration
+#### Firewalld Integration
 - Verify service is active
 $ nano	
 	~ banaction = firewallcmd-rich-rules
@@ -261,7 +325,7 @@ $ nano
 - Restart Service
 $ systemctl restart fail2ban
 
-#  Monitoring
+####  Monitoring
 - Verifying status
 $ fail2ban-client status sshd
 
