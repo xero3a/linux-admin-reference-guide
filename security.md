@@ -4,7 +4,7 @@ This document outlines the system security measures implemented during the Linux
 
 ---
 
-### SELinux Status
+### 1. SELinux Status
 
 - Set SELinux to **enabled** and **enforcing** mode.
 ```
@@ -40,7 +40,7 @@ SELINUXTYPE=targeted
 - Config file verified:
 		```/etc/selinux/config```
 
-### User & Access management 
+### 2. User & Access management 
 - Root SSH login disabled
 ```
 $ sudo nano /etc/ssh/sshd_config
@@ -60,7 +60,7 @@ $ ssh-keygen -t <key_type>
 
 > Previously configured `firewalld` as the primary firewall management tool.
 
-### Installation & Enablement
+### 3. Installation & Enablement
 ```
 $ sudo dnf install firewalld -y
 $ sudo systemctl enable firewalld
