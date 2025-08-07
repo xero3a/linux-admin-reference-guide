@@ -55,7 +55,8 @@ ________________________________________________________________________________
 
 - **Installation Type:** Minimal Install
 - **Root Password:** Set
-- **User Created:** <user>
+- **Root Account:** Locked
+- **User Created:** adduser -m <user>
 - **Hostname:** <user>.<domain>
 - **Timezone:** Default (or specify)
 - **Post-Install Boot:** Successful (into CLI)
