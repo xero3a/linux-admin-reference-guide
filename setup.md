@@ -40,6 +40,7 @@
 _____________________________________________________________________________________
 -------------------------------------------------------------------------------------
 
+
 1.    VirtualBox Configuration
 
 - **VM Name:** RHEL9
@@ -48,6 +49,7 @@ ________________________________________________________________________________
 - **Hard Disk:** 20 GB (Dynamically Allocated)
 - **ISO Used:** rhel-9.3-x86_64-dvd.iso
 - **Network Adapter:** NAT (Adapter 1 Enabled)
+
 
 2.    Installation Summary
 
@@ -58,18 +60,21 @@ ________________________________________________________________________________
 - **Timezone:** Default (or specify)
 - **Post-Install Boot:** Successful (into CLI)
 
+
 3.    Initial Setup Tasks
 
 - Enabled network using `nmtui`
 - Verified internet connectivity with `ping`
 - Updated system using:
-  ```bash
-$ sudo dnf update -y
+$ sudo dnf update
+
 - Enabled EPEL repository
-$ sudo dnf install epel-release -y
-$ sudo dnf update -y
+$ sudo dnf install epel-release
+$ sudo dnf update 
+
 - Installed base admin tools
-$ sudo dnf isntall vim git curl wget net-tools htop -y
+$ sudo dnf isntall vim git curl wget net-tools htop 
+
 
 4.    Git Configuration
 - Created GitHUB user account
@@ -77,11 +82,14 @@ $ sudo dnf isntall vim git curl wget net-tools htop -y
 - Configured user info
 $ git config --global user.name "my.name"
 $ git config --global user.email "my.email@example.com"
+
 - Generated SSH keys (ed25519) and added to public key in GH
 - Initialized local git repo and performed initial commit
 - Remote origin set to:
 $ git@github.com:user.name/git/repos/setup.git
+
 - Pushed to main branch successfully
+
 
 5.    Notes
 - Drag and drop functionality between Host and Guest VM needed to be configured
