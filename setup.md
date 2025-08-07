@@ -81,8 +81,12 @@ $ sudo dnf isntall vim git curl wget net-tools htop
 ```
 
 ### 4.    Git Configuration
-- Created GitHUB user account
+- Create GitHUB user account
 - Installed Git
+```
+$ sudo dnf install git
+$ git --version
+```  
 - Configured user info
 ```
 $ git config --global user.name "my.name"
@@ -90,9 +94,25 @@ $ git config --global user.email "my.email@example.com"
 ```
 - Generated SSH keys (ed25519) and added to public key in GH
 ```
-$ sudo ssh-keygen -t ed25519
+$ sudo ssh-keygen -t ed25519 -C user@example.com
+```
+- Start the agent and add your key
+```
+$ eval "$(ssh-agent -s)"
+$ ssh-add ~/.ssh/id_ed25519
+```
+- Copy the key
+```
+$ cat ~/.ssh/id_ed25519.pub  # output (starts with ssh-ed25519...)
 ```
 - Initialized local git repo and performed initial commit
+```
+$ mkdir my-project && cd my-project
+$ git init
+$ echo "# My Project" > README.md
+$ git add README.md
+$ git commit -m "Initial commit"
+```
 - Remote origin set to:
 ```
 $ git@github.com:user.name/git/repos/setup.git
