@@ -41,7 +41,7 @@ ________________________________________________________________________________
 -------------------------------------------------------------------------------------
 
 
-1.    VirtualBox Configuration
+### 1.    VirtualBox Configuration
 
 - **VM Name:** RHEL9
 - **Base Memory:** 2048 MB
@@ -51,48 +51,60 @@ ________________________________________________________________________________
 - **Network Adapter:** NAT (Adapter 1 Enabled)
 
 
-2.    Installation Summary
+### 2.    Installation Summary
 
 - **Installation Type:** Minimal Install
 - **Root Password:** Set
 - **Root Account:** Locked
-- **User Created:** adduser -m user
-- **Hostname:** user.domain
+- **User Created:** ```adduser -m user```
+- **Hostname:** system.domain
 - **Timezone:** Default (or specify)
 - **Post-Install Boot:** Successful (into CLI)
 
 
-3.    Initial Setup Tasks
+### 3.    Initial Setup Tasks
 
-- Enabled network using `nmtui`
-- Verified internet connectivity with `ping`
+- Enabled network using ```nmtui```
+- Verified internet connectivity with ```ping```
 - Updated system using:
+```
 $ sudo dnf update
-
+```
 - Enabled EPEL repository
+```
 $ sudo dnf install epel-release
 $ sudo dnf update 
-
+```
 - Installed base admin tools
+```
 $ sudo dnf isntall vim git curl wget net-tools htop 
+```
 
-
-4.    Git Configuration
+### 4.    Git Configuration
 - Created GitHUB user account
 - Installed Git
 - Configured user info
+```
 $ git config --global user.name "my.name"
 $ git config --global user.email "my.email@example.com"
-
+```
 - Generated SSH keys (ed25519) and added to public key in GH
+```
+$ sudo ssh-keygen -t ed25519
+```
 - Initialized local git repo and performed initial commit
 - Remote origin set to:
+```
 $ git@github.com:user.name/git/repos/setup.git
-
+```
 - Pushed to main branch successfully
+```
+$ git add <dir/file>
+$ git -m "Your update note(s)"
+$ git push
+```
 
-
-5.    Notes
+### 5.    Notes
 - Drag and drop functionality between Host and Guest VM needed to be configured
 - Clipboard support needed for ease of installation and updates
 - Neovim installed and functioning
