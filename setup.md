@@ -64,35 +64,36 @@ ________________________________________________________________________________
 
 ### 3.    Initial Setup Tasks
 
-- Enabled network using ```nmtui```
-- Verified internet connectivity with ```ping```
-- Updated system using:
+- Enable network settings using ```nmtui```
+- Verify internet connectivity with ```ping```
+- Update system using:
 ```
+$ sudo dnf clean all
 $ sudo dnf update
 ```
-- Enabled EPEL repository
+- Enable EPEL repository
 ```
 $ sudo dnf install epel-release
 $ sudo dnf update 
 ```
-- Installed base admin tools
+- Installe base admin tools
 ```
 $ sudo dnf isntall vim git curl wget net-tools htop 
 ```
 
 ### 4.    Git Configuration
 - Create GitHUB user account
-- Installed Git
+- Install Git
 ```
 $ sudo dnf install git
 $ git --version
 ```  
-- Configured user info
+- Configure user info
 ```
 $ git config --global user.name "my.name"
 $ git config --global user.email "my.email@example.com"
 ```
-- Generated SSH keys (ed25519) and added to public key in GH
+- Generate SSH keys (ed25519) and add to public key in GH
 ```
 $ sudo ssh-keygen -t ed25519 -C user@example.com
 ```
@@ -105,7 +106,23 @@ $ ssh-add ~/.ssh/id_ed25519
 ```
 $ cat ~/.ssh/id_ed25519.pub  # output (starts with ssh-ed25519...)
 ```
-- Initialized local git repo and performed initial commit
+- Add your public key to GitHub or GitLab
+```
+    For GitHub:
+      Go to GitHub > Settings > SSH and GPG keys
+      Click New SSH key
+      Paste the public key
+      Give it a name (e.g., “RHEL 9.4 VM”)
+
+    For GitLab:
+      User icon > Preferences > SSH Keys
+      Paste the key there
+```
+- Test your SSH connection
+```
+$ ssh -T git@github.com
+```
+- Initialize local git repo and perform initial commit
 ```
 $ mkdir my-project && cd my-project
 $ git init
@@ -117,14 +134,24 @@ $ git commit -m "Initial commit"
 ```
 $ git@github.com:user.name/git/repos/setup.git
 ```
-- Pushed to main branch successfully
+- Push to main branch
 ```
 $ git add <dir/file>
 $ git -m "Your update note(s)"
 $ git push
 ```
 
-### 5.    Notes
+### 5. Summary
+| Task                         |   Status                              |
+| ---------------------------- | --------------------------------------|
+| Git installed                |                                       |
+| Name & email configured      |                                       |
+| Editor, colors, branch set   |   Optional, recommended               |
+| SSH key generated            |   Optional but secure                 |
+| SSH key added to platform    |   If using GitHub/GitLab              |
+| First repo initialized       |   For testing/config confirmation     |
+
+### 6. Notes
 - Drag and drop functionality between Host and Guest VM needed to be configured
 - Clipboard support needed for ease of installation and updates
 - Neovim installed and functioning
