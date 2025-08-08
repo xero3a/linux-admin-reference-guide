@@ -155,10 +155,16 @@ $ umask 027
 ```
 $ nano ~/.bashrc 
 
-	...or...
+...or...
 
+$ echo 'umask 027' >> ~/.bashrc
+```
+```
 $ nano ~/.bash_profile
-echo 'umask 027' >> ~/.bashrc
+
+...or...
+
+$ echo 'umask 027' >> ~/.bash_profile
 ```
 
 # Special Permissions
@@ -222,7 +228,7 @@ user ALL=(ALL) ALL NOPASSWD: ALL
 
 #### Monitoring and Managing Logins
 
-- Keeping track of user login activity helps recognize unauthorized or suspicious user behavior patterns
+> Keeping track of user login activity helps recognize unauthorized or suspicious user behavior patterns
 
 - Viewing Recent Login Activity
 ```
