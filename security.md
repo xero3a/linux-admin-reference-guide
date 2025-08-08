@@ -36,7 +36,9 @@ $ sudo nano /etc/selinux/config
 ```
 ~ SELINUX=enforcing
 ```
+
 > Final Result:
+
 ```
 SELINUX=enforcing
 SELINUXTYPE=targeted
@@ -50,17 +52,22 @@ SELINUXTYPE=targeted
 
 
 ### 2. User & Access management 
+
 - Root SSH login disabled
 ```
 $ sudo nano /etc/ssh/sshd_config
 ~ PermitRootLogin no
 ```
+
 - Password Authentication disabled for SSH
+
 - Public Key Authentication Permitted
+
 - SSH Key pair generated
 ```
 $ ssh-keygen -t <key_type>
 ```
+
 - SSH public key added to GitHub via web UI
 
 
@@ -69,7 +76,8 @@ $ ssh-keygen -t <key_type>
 
 > Previously configured `firewalld` as the primary firewall management tool.
 
-### 3. Installation & Enablement
+#### Installation & Enablement
+
 ```
 $ sudo dnf install firewalld -y
 $ sudo systemctl enable firewalld
@@ -78,15 +86,18 @@ $ sudo systemctl start firewalld
 
 
 #### Basic usage
+
 - Checking Status
 ```
 $ sudo firewall-cmd --state
 $ sudo systemctl status firewalld
 ```
+
 - Viewing default zones
 ```
 $ sudo firewall-cmd --get-default-zone
 ```
+
 - List active zones and rules
 ```
 $ sudo firewall-cmd --list-all-zones
@@ -96,23 +107,28 @@ $ sudo firewall-cmd --get-active-zones
 
 
 #### Common Tasks
+
 - Add a service (permanent)
 ```
 $ sudo firewall-cmd --zone=public --add-service=ssh --permanent
 ```
+
 - Applying changes
 ```
 $ firewall-cmd --reload
 ```
+
 - Opening ports
 ```
 $ sudo firewall-cmd --zone=public --add-port=8080/tcp
 ```
+
 - Allowing necessary services
 ```
 $ sudo firewall-cmd --permanent --add-service=ssh
 $ sudo firewall-cmd --permanent --add-service=http
 ```
+
 - Removing unnecesssary services
 ```
 $ sudo firewall-cmd --permanent --remove -service=dhcpv6-client
@@ -123,28 +139,34 @@ $ sudo firewall-cmd --list-all
 
 
 ### 4. User and Group Management
+
 - Created non-root user accounts using:
 ```
 $ sudo adduser <username>
 ```
+
 - Set password for users
 ```
 $ sudo passwd <username>
 ```
+
 - Added users/groups for permission management
 ```
 $ sudo usermod -aG <group> <username>
 ```
+
 - Verify user group assignments
 ```
 $ groups <username>
 ```
+
 - Manage privileges by editing sudoers file:
 ```
 $ sudo visudo
 ```
 
 #### User added to wheel group
+
 - Lock and disable user accounts when necessary
 ```
 $ sudo passwd -l root		   # Locks the root account for security purposes
@@ -155,29 +177,35 @@ $ sudo usermod -U <username>   # Unlocks accounts
 
 
 ### 5. SSH Hardening
+
 - Disabled root login over SSH to prevent direct root access:
 ```
 $ sudo nano /etc/ssh/sshd_config
 
 ~ Set: PermitRootLogin no
 ```
+
 - Disable pasword authentication to enfore key-based login
 ```
 $ sudo nano /etc/ssh/sshd_config
 ~ Set: PasswordAuthentication no
 ```
+
 - Ensure only public key authentication is allowed
 ```
 
 ```
+
 - Reload SSH target service
 ```
 $ sudo systemctl reload sshd
 ```
+
 - Created SSH key pair using secure alghorithm
 ```
 $ ssh-keygen -t <key_type> -C "user.email@example.com"
 ```
+
 - Copied public key to authorized keys
 ```
 $ ssh-copy-id user@hostname
@@ -194,15 +222,27 @@ $ ssh-copy-id user@hostname
   - **Disabled:** SELinux is off.
 
 - Check current mode:
+```
 $ sestatus
+```
+
 - Temporarily set permissive mode
+```
 $ sudo setenforce 0
+```
+
 - Permanently change mode, edit /etc/selinux/config
+```
 $ SELINUX=enforcing
+```
+
 - Use audit2allow to analyze denied actions and generate policy modules
+```
 $ sudo ausearch -m AVC,USER_AVC -ts recent
 $ sudo auditallow -M mypol
 $ semodule -i mypol.pp
+```
+
 - Troubleshooting
   a. check /var/log/audit/audit.log
   b. check /var/log/messages
@@ -212,6 +252,7 @@ $ semodule -i mypol.pp
 > In some cases, default SELinux policies do not permit required operations. A custom policy can be written and installed to allow specific actions.
 
 - Created a policy source file:
+```
 $ nano mypol.te
 - Contents of `mypol.te`:
     ~ module mypol 1.0;
@@ -222,44 +263,76 @@ $ nano mypol.te
     ~ }
 
     ~ allow ssh_port_t self:tcp_socket name_bind;
+```
+
 - Compiled the module:
+```
 $ checkmodule -M -m -o mypol.mod mypol.te
+```
+
 - Created the policy package:
+```
 $ semodule_package -o mypol.pp -m mypol.mod
+```
+
 - Installed the policy:
+```
 $ semodule -i mypol.pp
+```
 
 > This approach can be expanded to handle other denials by inspecting logs (e.g., using `audit2allow`)
 
 
 
 ### 7. Service Hardening
+
 - Listed all enabled services:
+```
 $ sudo systemctl list-unit-files --state=enabled
+```
+
 - Disable unnecessary service
+```
 $ sudo systemctl disable <service>
 $ sudo systemctl stop <service>
-- Verified firewall rules to block unwanted service ports
+```
+
+- Verify firewall rules to block unwanted service ports
 - Regularly check active services to ensure only needed daemons are available
 
 
 
 ### 8. Log Auditing
+
 - `auditd` provides detailed logging of system calls and security-relevant events.
 
 - Install auditd if not already installed:
-$ sudo dnf install audit -y
+```
+$ sudo dnf install audit 
+```
+
 - Enable and starting auditd
+```
 $ sudo systemctl enable auditd
 $ sudo systemctl start auditd
+```
+
 - Verify auditd status
+```
 $ sudo systemctl status auditd.service
+```
+
 - View audit logs
+```
 $ sudo ausearch -m avc
 $ sudo ausearch -ts recent
+```
+
 - Manipulate audit rules dynamically
+```
   a. auditctl
   b. /etc/audit/audit.rules
+```
 
 
 
