@@ -2,7 +2,6 @@
 
 This document outlines the system security measures implemented during the Linux administration setup. It includes configurations for user access, system hardening, firewall management, and service-level protections to ensure secure operation.
 
----
 
 
    
@@ -11,11 +10,14 @@ This document outlines the system security measures implemented during the Linux
 - Set SELinux to **enabled** and **enforcing** mode.
 ```
 $ getenforce
-			You’ll see one of:
-					Enforcing → Already enabled
-					Permissive → Enabled but not enforcing
-					Disabled → Not active at all
+# You’ll see one of:
+#   Enforcing    → Already enabled
+#   Permissive   → Enabled but not enforcing
+#   Disabled     → Not active at all
 ```
+
+
+
 
 - Check current configuration
 ```
@@ -56,10 +58,11 @@ SELINUXTYPE=targeted
 - Root SSH login disabled
 ```
 $ sudo nano /etc/ssh/sshd_config
+
 ~ PermitRootLogin no
 ```
 
-- Password Authentication disabled for SSH
+- Password Authentication disabled in SSH config to enfore key-based login.
 
 - Public Key Authentication Permitted
 
@@ -79,7 +82,7 @@ $ ssh-keygen -t <key_type>
 #### Installation & Enablement
 
 ```
-$ sudo dnf install firewalld -y
+$ sudo dnf install firewalld 
 $ sudo systemctl enable firewalld
 $ sudo systemctl start firewalld
 ```
@@ -131,7 +134,7 @@ $ sudo firewall-cmd --permanent --add-service=http
 
 - Removing unnecesssary services
 ```
-$ sudo firewall-cmd --permanent --remove -service=dhcpv6-client
+$ sudo firewall-cmd --permanent --remove-service=dhcpv6-client
 $ sudo firewall-cmd --reload
 $ sudo firewall-cmd --list-all
 ```
@@ -216,10 +219,12 @@ $ ssh-copy-id user@hostname
 ### 6. SELinux Advanced Tips
 
 - SELinux enforces Mandatory Access Control (MAC) policies, restricting what processes can do.
+```
 - Common modes:
   - **Enforcing:** SELinux policy is enforced.
   - **Permissive:** Logs actions that would be denied but does not block them.
   - **Disabled:** SELinux is off.
+```
 
 - Check current mode:
 ```
@@ -233,7 +238,7 @@ $ sudo setenforce 0
 
 - Permanently change mode, edit /etc/selinux/config
 ```
-$ SELINUX=enforcing
+SELINUX=enforcing
 ```
 
 - Use audit2allow to analyze denied actions and generate policy modules
