@@ -4,7 +4,7 @@ This document tracks all networking-related configuration and diagnostics perfor
 RHEL system, including IP address checks, firewall management, interface configuration, 
 and DNS settings.
 
-__________________________________________________________________________________________
+
 ------------------------------------------------------------------------------------------
 
 #### Basic Network Inspection
@@ -39,7 +39,7 @@ $ sudo ip addr add <IP_address>/<prefix_length> dev <interface>
 ```
 - Deleting a static IP address from interface
 ```
-$ sudo ip addr del <IP_adress>/<prefix_length> dev <interface>
+$ sudo ip addr del <IP_address>/<prefix_length> dev <interface>
 ```
 - Permanent network configuration performed by the following actions:
         a. /etc/sysconfig/network-scripts
@@ -63,11 +63,9 @@ $ firewall-cmd --get-active-zones
 - List current rules for a zone
 ```
 $ firewall-cmd --zone=public --list-all
-$ sudo firewall-cmd --zone-public --ass-service=ssh --permanent
+```
+- Opening ports & reload the firewall rules to apply new changes.
+```
+$ sudo firewall-cmd --zone=public --add-port=<port>/<protocol> --permanent
 $ sudo firewall-cmd --reload
-```
-- Opening ports
-```
-$ firewall-cmd --zone=public --add-port=<port>/<protocol> --permanent
-$ firewall-cmd --reload
 ```
