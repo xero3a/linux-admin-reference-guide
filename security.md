@@ -4,6 +4,8 @@ This document outlines the system security measures implemented during the Linux
 
 ---
 
+
+   
 ### 1. SELinux Status
 
 - Set SELinux to **enabled** and **enforcing** mode.
@@ -14,18 +16,22 @@ $ getenforce
 					Permissive → Enabled but not enforcing
 					Disabled → Not active at all
 ```
+
 - Check current configuration
 ```
 $ sestatus
 ```
+
 - Configuration checked with:
 ```
 $ sestatus
 ```
+
 - Edit the SELinux config file
 ```
 $ sudo nano /etc/selinux/config
 ```
+
 - Modify/Uncomment line:
 ```
 ~ SELINUX=enforcing
@@ -35,10 +41,13 @@ $ sudo nano /etc/selinux/config
 SELINUX=enforcing
 SELINUXTYPE=targeted
 ```
-> Save, Exit, & Reboot
+
+- Save, Exit, & Reboot
 
 - Config file verified:
 		```/etc/selinux/config```
+
+
 
 ### 2. User & Access management 
 - Root SSH login disabled
@@ -56,7 +65,7 @@ $ ssh-keygen -t <key_type>
 
 
 
-### Firewall Configuration
+### 3. Firewall Configuration
 
 > Previously configured `firewalld` as the primary firewall management tool.
 
@@ -68,7 +77,7 @@ $ sudo systemctl start firewalld
 ```
 
 
-### Basic usage
+#### Basic usage
 - Checking Status
 ```
 $ sudo firewall-cmd --state
@@ -86,7 +95,7 @@ $ sudo firewall-cmd --get-active-zones
 ```
 
 
-### Common Tasks
+#### Common Tasks
 - Add a service (permanent)
 ```
 $ sudo firewall-cmd --zone=public --add-service=ssh --permanent
@@ -112,7 +121,8 @@ $ sudo firewall-cmd --list-all
 ```
 
 
-### User and Group Management
+
+### 4. User and Group Management
 - Created non-root user accounts using:
 ```
 $ sudo adduser <username>
@@ -143,7 +153,8 @@ $ sudo usermod -U <username>   # Unlocks accounts
 ```
 
 
-### SSH Hardening
+
+### 5. SSH Hardening
 - Disabled root login over SSH to prevent direct root access:
 ```
 $ sudo nano /etc/ssh/sshd_config
@@ -174,7 +185,7 @@ $ ssh-copy-id user@hostname
 
 
 
-### SELinux Advanced Tips
+### 6. SELinux Advanced Tips
 
 - SELinux enforces Mandatory Access Control (MAC) policies, restricting what processes can do.
 - Common modes:
@@ -196,7 +207,7 @@ $ semodule -i mypol.pp
   a. check /var/log/audit/audit.log
   b. check /var/log/messages
 
-### Custom SELinux Policy Module
+#### Custom SELinux Policy Module
 
 > In some cases, default SELinux policies do not permit required operations. A custom policy can be written and installed to allow specific actions.
 
@@ -222,7 +233,7 @@ $ semodule -i mypol.pp
 
 
 
-### Service Hardening
+### 7. Service Hardening
 - Listed all enabled services:
 $ sudo systemctl list-unit-files --state=enabled
 - Disable unnecessary service
@@ -233,7 +244,7 @@ $ sudo systemctl stop <service>
 
 
 
-### Log Auditing
+### 8. Log Auditing
 - `auditd` provides detailed logging of system calls and security-relevant events.
 
 - Install auditd if not already installed:
@@ -252,93 +263,134 @@ $ sudo ausearch -ts recent
 
 
 
-### Intrusion Detection (AIDE)
-- AIDE (Advanced Intrusion Detection Environment) is a host-based intrusion detection system that 
-  creates a database of files and their attributes. It can detect unauthorized changes to the 
-  system by comparing the current state with the baseline.
+### 9. Intrusion Detection (AIDE)
+
+##### AIDE (Advanced Intrusion Detection Environment) is a host-based intrusion detection system that creates a database of files and their attributes. It can detect unauthorized changes to the 
+##### system by comparing the current state with the baseline.
 
 #### Installation
+
+```
 $ sudo dnf install aide
+```
 
 #### Initialization
-- Create Database
-$ aide --init
-- Moved to proper directory
-$ mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.bd.gz
 
-##### Manual Checks
+- Create Database
+```
+$ aide --init
+```
+
+- Moved to proper directory
+```
+$ mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.bd.gz
+```
+
+#### Manual Checks
 - Verifying baseline changes
+```
 $ aide --check
+```
 
 #### Database Updates
+```
 $ aide --update
 $ mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+```
 
 #### Automate AIDE Checks
+```
 $ crontab -e
 	~ 0 1 * * * /usr/sbin/aide --check
+```
 
 
+### 10. Port Scanning & Enumeration Defense
 
-### Port Scanning & Enumeration Defense
-
-> Attackers often begin with reconnaissance, using tools like `nmap` to discover open ports and services. Hardening the system against such scans is a key part of proactive security.
+##### Attackers often begin with reconnaissance, using tools like `nmap` to discover open ports and services. Hardening the system against such scans is a key part of proactive security.
 
 #### Reduce Open Ports
 
 - Keep only necessary services running and listening:
+```
 $ ss -tuln  # View listening ports
 $ systemctl stop <service>
 $ systemctl disable <service>
+```
 
-- Limiting firewalld Exposure
-# Allow SSH only from a trusted IP
+#### Limiting firewalld Exposure
+
+- Allow SSH only from a trusted IP
+```
 $ sudo firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="<X.X.X.X>" service name="ssh" accept'
 $ sudo firewall-cmd --reload
+```
 
 - TCP/IP Stack Hardening
+```
 $ nano /etc/sysctl.conf
+```
 
-# Ignore ICMP (ping) requests
+#### Ignore ICMP (ping) requests
+```
 $ net.ipv4.icmp_echo_ignore_all = 1
+```
 
-# Drop malformed packets and prevent IP spoofing
+#### Drop malformed packets and prevent IP spoofing
+```
 $ net.ipv4.conf.all.rp_filter = 1
 $ net.ipv4.conf.default.rp_filter = 1
 $ net.ipv4.conf.all.accept_source_route = 0
+```
+
 - Apply changes
+```
 $ sudo sysctl -p
+```
 
 
-### Fail2Ban Intrusion Prevention
+### 11. Fail2Ban Intrusion Prevention
 
-> Fail2Ban is a log-parsing tool that monitors system logs for patterns of failed login attempts and blocks the offending IP addresses via firewall rules.
+##### Fail2Ban is a log-parsing tool that monitors system logs for patterns of failed login attempts and blocks the offending IP addresses via firewall rules.
 
-# Installation
+#### Installation
 - Fail2Ban can be installed from the EPEL repository:
+```
 $ sudo dnf install fail2ban fail2ban-firewalld -y
+```
+
 - Enable and Start service
+```
 $ sudo systemctl enable --now fail2ban
+```
 
 #### Basic Configuration
 - Default config file /etc/fail2ban/jail/locl
-	~ [sshd]
+```
+ 	~ [sshd]
 		enabled = true
 		port    = ssh
 		filter  = sshd
 		logpath = /var/log/secure
 		maxretry = 5
 		bantime = 3600
+```
 
 #### Firewalld Integration
 - Verify service is active
+```
 $ nano	
 	~ banaction = firewallcmd-rich-rules
 	backend = systemd
+```
+
 - Restart Service
+```
 $ systemctl restart fail2ban
+```
 
 ####  Monitoring
 - Verifying status
+```
 $ fail2ban-client status sshd
-
+```
