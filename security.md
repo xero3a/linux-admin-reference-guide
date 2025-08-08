@@ -448,20 +448,20 @@ $ sudo systemctl enable --now fail2ban
 #### Basic Configuration
 - Default config file /etc/fail2ban/jail/local
 ```
- 	~ [sshd]
-		enabled = true
-		port    = ssh
-		filter  = sshd
-		logpath = /var/log/secure
-		maxretry = 5
-		bantime = 3600
+[sshd]
+  enabled = true
+  port    = ssh
+  filter  = sshd
+  logpath = /var/log/secure
+  maxretry = 5
+  bantime = 3600
 ```
 
 #### Firewalld Integration
 - Verify service is active
 ```
 $ nano	
-	banaction = firewall-cmd-rich-rules
+	banaction = firewallcmd-rich-rules
 	backend = systemd
 ```
 
