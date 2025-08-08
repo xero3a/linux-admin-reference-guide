@@ -148,7 +148,7 @@ $ sudo firewall-cmd --list-all
 $ sudo adduser <username>
 ```
 
-- Set password for users
+- Set passwords for users
 ```
 $ sudo passwd <username>
 ```
@@ -172,7 +172,7 @@ $ sudo visudo
 
 - Lock and disable user accounts when necessary
 ```
-$ sudo passwd -l root		   # Locks the root account for security purposes
+$ sudo passwd -l root		   # Locks root account for security purposes
 $ sudo usermod -L <username>   # Locks accounts
 $ sudo usermod -U <username>   # Unlocks accounts
 ```
@@ -188,16 +188,14 @@ $ sudo nano /etc/ssh/sshd_config
 ~ Set: PermitRootLogin no
 ```
 
-- Disable pasword authentication to enfore key-based login
+- Disable password authentication to enfore key-based login
 ```
 $ sudo nano /etc/ssh/sshd_config
-~ Set: PasswordAuthentication no
+Set: PasswordAuthentication no
 ```
 
 - Ensure only public key authentication is allowed
-```
 
-```
 
 - Reload SSH target service
 ```
@@ -221,9 +219,9 @@ $ ssh-copy-id user@hostname
 - SELinux enforces Mandatory Access Control (MAC) policies, restricting what processes can do.
 ```
 - Common modes:
-  - **Enforcing:** SELinux policy is enforced.
-  - **Permissive:** Logs actions that would be denied but does not block them.
-  - **Disabled:** SELinux is off.
+  # **Enforcing:** SELinux policy is enforced.
+  # **Permissive:** Logs actions that would be denied but does not block them.
+  # **Disabled:** SELinux is off.
 ```
 
 - Check current mode:
@@ -244,7 +242,7 @@ SELINUX=enforcing
 - Use audit2allow to analyze denied actions and generate policy modules
 ```
 $ sudo ausearch -m AVC,USER_AVC -ts recent
-$ sudo auditallow -M mypol
+$ sudo audit2allow -M mypol
 $ semodule -i mypol.pp
 ```
 
@@ -296,7 +294,7 @@ $ semodule -i mypol.pp
 $ sudo systemctl list-unit-files --state=enabled
 ```
 
-- Disable unnecessary service
+- Disable unnecessary services
 ```
 $ sudo systemctl disable <service>
 $ sudo systemctl stop <service>
@@ -313,7 +311,7 @@ $ sudo systemctl stop <service>
 
 - Install auditd if not already installed:
 ```
-$ sudo dnf install audit 
+$ sudo dnf install audit
 ```
 
 - Enable and starting auditd
@@ -335,8 +333,8 @@ $ sudo ausearch -ts recent
 
 - Manipulate audit rules dynamically
 ```
-  a. auditctl
-  b. /etc/audit/audit.rules
+#  a. auditctl
+#  b. /etc/audit/audit.rules
 ```
 
 
@@ -361,7 +359,7 @@ $ aide --init
 
 - Moved to proper directory
 ```
-$ mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.bd.gz
+$ mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
 ```
 
 #### Manual Checks
@@ -415,10 +413,15 @@ $ net.ipv4.icmp_echo_ignore_all = 1
 ```
 
 #### Drop malformed packets and prevent IP spoofing
+
 ```
-$ net.ipv4.conf.all.rp_filter = 1
-$ net.ipv4.conf.default.rp_filter = 1
-$ net.ipv4.conf.all.accept_source_route = 0
+$ sudo nano /etc/sysctl.d/sysctl.conf
+
+net.ipv4.icmp_echo_ignore_all = 1
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+net.ipv4.conf.all.accept_source_route = 0
+
 ```
 
 - Apply changes
@@ -434,7 +437,7 @@ $ sudo sysctl -p
 #### Installation
 - Fail2Ban can be installed from the EPEL repository:
 ```
-$ sudo dnf install fail2ban fail2ban-firewalld -y
+$ sudo dnf install fail2ban fail2ban-firewalld
 ```
 
 - Enable and Start service
@@ -443,7 +446,7 @@ $ sudo systemctl enable --now fail2ban
 ```
 
 #### Basic Configuration
-- Default config file /etc/fail2ban/jail/locl
+- Default config file /etc/fail2ban/jail/local
 ```
  	~ [sshd]
 		enabled = true
@@ -458,7 +461,7 @@ $ sudo systemctl enable --now fail2ban
 - Verify service is active
 ```
 $ nano	
-	~ banaction = firewallcmd-rich-rules
+	banaction = firewall-cmd-rich-rules
 	backend = systemd
 ```
 
