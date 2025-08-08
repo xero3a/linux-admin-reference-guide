@@ -7,7 +7,7 @@ and DNS settings.
 
 ------------------------------------------------------------------------------------------
 
-#### Basic Network Inspection
+### Basic Network Inspection
 
 These commands were used to inspect the network status of the system:
 
@@ -20,7 +20,7 @@ These commands were used to inspect the network status of the system:
 > These tools help ensure connectivity is established and confirm what services (if any) are exposed.
 
 
-#### Configuring Network Interfaces
+### Configuring Network Interfaces
 
 > Use `nmtui` (Network Manager Text User Interface) for interactive network configuration.
 
@@ -45,7 +45,7 @@ $ sudo ip addr del <IP_address>/<prefix_length> dev <interface>
         a. /etc/sysconfig/network-scripts
         b. nmcli
 
-#### Firewall Configuration (firewalld)
+### Firewall Configuration (firewalld)
 
 > RHEL 9 uses `firewalld` as its default firewall management tool.
 
