@@ -51,3 +51,16 @@ document real-world tasks for my Linux career portfolio.
 
 **Note:**   ---   These problems were solved step-by-step through documentation review, testing fixes, and
                      understanding RHEL's enterprise content model -- all part of what makes the work rewarding.
+
+---
+
+## Credits & Acknowledgments
+
+**Author & Implementation**  
+- **Vern** — Designed, implemented, and documented the Linux-based enterprise network and virtual machine configurations, including service deployment, hardware planning, and ongoing optimization.
+
+**Guidance & Technical Assistance**  
+- **ChatGPT (OpenAI)** — Provided structured step-by-step guidance, configuration recommendations, and network architecture planning support throughout the project.
+
+---
+
