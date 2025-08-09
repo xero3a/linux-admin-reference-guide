@@ -1,0 +1,72 @@
+Enterprise Network Reference Guide
+
+1. Title & Purpose
+
+- This reference guide documents the architecture, configuration, and maintenance of a Linux-centered enterprise network running on virtualized infrastructure.  It serves as both a 
+  technical manual for ongoing operations and a blueprint for scaling the environment. Performing the steps in this guide will allow me to perform the functions of a 
+  Linux Administrator. In step-by-step detail, the actions in this guide will serve as a future point for memorization.
+
+2. Scope of This Guide
+Designed for a small-scale enterprise simulation with services modeled after large organizations.
+Optimized for Linux-based servers with open-source and self-hosted solutions.
+Supports integration of VoIP, security cameras, CI/CD pipelines, and core business services.
+Intended for internal IT staff, network administrators, and systems engineers.
+
+3. Current Network Layout & Hardware
+(Insert your existing network diagram or a text-based topology overview here.)
+
+Primary Host Hardware:
+
+AMD Ryzen 7 7700X (8 cores, 16 threads, 4.5 GHz)
+64 GB DDR5 RAM
+2 TB NVMe SSD (Primary Storage)
+Virtualization Platform: KVM/QEMU + VirtualBox (testing)
+Planned Server Roles:
+
+Directory Services & Authentication (LDAP/FreeIPA)
+DNS/DHCP Server
+Email Server
+Client Application Server
+Production Application Server
+VoIP Server
+Security Camera NVR Server
+Web Server (internal/external)
+Database Server
+Monitoring & Logging Server
+File Server (SMB/NFS)
+Repository & CI/CD Server
+Backup Server
+4. Services & VM Roles
+Example:
+DNS/DHCP Server
+
+OS: RHEL 9
+Services: bind, dhcpd
+Hardware Allocation: 2 vCPU, 4 GB RAM, 20 GB storage
+Notes: Serves internal network addressing and name resolution.
+(Repeat for each server role with specs.)
+
+5. Configuration & Deployment Steps
+Step-by-step setup for each service
+VM provisioning commands
+Network configuration (bridging, VLANs, firewall rules)
+
+6. Maintenance & Monitoring Procedures
+Regular update schedule (dnf upgrade)
+Log review process
+Backup verification steps
+Monitoring alerts setup
+
+7. Future Expansion Plans
+Migrate to full Proxmox or VMware vSphere cluster
+Scale to multi-node Kubernetes for container workloads
+Add additional storage via NAS/SAN integration
+Expand monitoring into SIEM solution
+
+8. Credits & Acknowledgments
+Author & Implementation
+
+Vern — Designed, implemented, and documented the Linux-based enterprise network and virtual machine configurations, including service deployment, hardware planning, and ongoing optimization.
+Guidance & Technical Assistance
+
+ChatGPT (OpenAI) — Provided structured step-by-step guidance, configuration recommendations, and network architecture planning support throughout the project.
