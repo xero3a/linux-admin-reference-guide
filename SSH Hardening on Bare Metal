@@ -1,0 +1,487 @@
+SSH Hardening on Bare Metal
+
+Given you're on direct hardware, here's how to move forward safely:
+✅ You’re Currently:
+
+    Logged into a local terminal (TTY or graphical) on the RHEL machine
+
+    Preparing to configure key-based SSH for remote access
+
+    Not using .ssh keys yet
+
+🛡️ Recommendation Before Disabling PasswordAuthentication:
+
+    Keep a working terminal session open locally.
+    So if something goes wrong during SSH config, you’re not locked out.
+
+    Generate and install the SSH key on the RHEL machine before you disable password login.
+
+🧰 Local Key Generation on the RHEL Host (If You’ll SSH from Another Box)
+
+From your client system (the one you’ll connect from remotely):
+```
+$ ssh-keygen -t ed25519 -C "sysadmin@rhel9"
+$ ssh-copy-id -i ~/.ssh/id_ed25519.pub sysadmin@<RHEL_IP>
+```
+>/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/home/user/.ssh/id_ed25519.pub"
+>The authenticity of host 'localhost (::1)' can't be established.
+>ED25519 key fingerprint is {xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}.
+>This key is not known by any other names
+>Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+>/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+>/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+>user@localhost's password: 
+
+Number of key(s) added: 1
+
+Now try logging into the machine, with:   "ssh 'user@localhost'"
+and check to make sure that only the key(s) you wanted were added.
+
+Test it:
+
+$ ssh -i ~/.ssh/id_ed25519 user@<RHEL_ip-or-hostname>
+
+✅ If it works, you’re good to disable password login in sshd_config.
+🖥️ SSH to Yourself (Test Local SSH Access)
+
+You can even test locally:
+```
+ssh user@localhost
+```
+The authenticity of host 'localhost (::1)' can't be established.
+ED25519 key fingerprint is {xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
+This key is not known by any other names
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+**Note:** - if you only type single letters, this message will appear - "Please type 'yes', 'no' or the fingerprint:"
+Warning: Permanently added 'localhost' (ED25519) to the list of known hosts.
+Activate the web console with: systemctl enable --now cockpit.socket
+
+Register this system with Red Hat Insights: insights-client --register
+Create an account or view all your systems at https://red.ht/insights-dashboard
+Last login: Thu Aug  7 15:04:19 2025
+```
+
+This ensures OpenSSH is working before you disable password authentication.
+⚙️ Then Finalize Hardened SSHD Config
+```
+$ sudo vi /etc/ssh/sshd_config
+```
+Recommended safe config for direct installs:
+```
+Port 22
+PermitRootLogin no
+PasswordAuthentication no
+PermitEmptyPasswords no
+PubkeyAuthentication yes
+PermitUserEnvironment no
+UsePAM yes
+X11Forwarding no
+ClientAliveInterval 300
+ClientAliveCountMax 2
+```
+Then:
+```
+$ sudo systemctl restart sshd
+```
+
+
+
+
+✅ Overview: What We'll Do
+🔐 Hardening for Host Security
+
+    Limit attack surface (kernel, services, filesystem)
+
+    Enforce SELinux, firewall, auditing
+
+    Tweak sysctl for host and VM network safety
+
+⚙️ Enable Secure Nested Virtualization
+
+    Verify nested support in CPU/Kernel
+
+    Install KVM / libvirt stack
+
+    Secure libvirt, bridge interfaces, permissions
+
+    Set up VM disk protections and separation
+
+🔧 Step-by-Step: Hardened Nested Virtualization Host on RHEL 9.4
+
+Verify Nested Virtualization Support
+
+For AMD:
+```
+$ cat /sys/module/kvm_amd/parameters/nested
+1
+```
+For Intel:
+```
+$ cat /sys/module/kvm_intel/parameters/nested
+```
+$ If it says N or nothing is returned, enable it.
+
+
+
+
+
+# 1.  To enable nested virtualization (permanently):
+
+AMD:
+```
+$ echo "options kvm_amd nested=1" | sudo tee /etc/modprobe.d/kvm-amd.conf
+```
+Intel:
+```
+$ echo "options kvm_intel nested=1" | sudo tee /etc/modprobe.d/kvm-intel.conf
+```
+Then:
+```
+$ sudo modprobe -r kvm_amd kvm_intel
+$ sudo modprobe kvm_amd    # or kvm_intel
+```
+
+# ✅ 2. Install Virtualization Tools (KVM, Libvirt)
+
+Register your system with subscription-manager
+> You'll need to register your system before you can install corresponding packages and tools
+
+Register the System
+
+You’ll need your Red Hat Customer Portal credentials:
+```
+sudo subscription-manager register
+```
+It will prompt:
+```
+$ Username: <Your_RH_Username>
+$ Password: <Your_RH_Password>
+```
+You should see:
+```
+The system has been registered with ID:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+The registered system name is: localhost.localdomain
+```
+> **Note: ** -  if your subscription-manager status says 
+```
+$ Overall Status: Disabled, that means the host isn’t activated yet, even though your Red Hat account may have Simple Content Access enabled.
+```
+
+We’ll need to:
+1️⃣ Attempt to Re-register the System
+```
+sudo subscription-manager register
+```
+Enter your Red Hat Customer Portal username & password.
+
+If you get an “Account has SCA enabled” message, that’s good — it means you won’t have to pick a pool.
+
+2️⃣ Refresh the Subscription
+```
+sudo subscription-manager refresh
+```
+3️⃣ Verify Status
+```
+sudo subscription-manager status
+```
+Expected:
+
+Overall Status: Current
+
+Potential:
+```
++-------------------------------------------+
+   System Status Details
++-------------------------------------------+
+Overall Status: Disabled
+Content Access Mode is set to Simple Content Access. This host has access to content, regardless of subscription status.
+
+System Purpose Status: Disabled
+
+```
+Attempt to Refresh
+```
+$ sudo subscription-manager refresh
+All local data refreshed
+$ sudo subscription-manager status
+```
+***Note: ** - If the same error occurs, you can still move forward by enabling your repos.
+
+
+4️⃣ Enable Required Repos
+```
+$ sudo subscription-manager repos \
+>    --enable rhel-9-for-x86_64-baseos-rpms \
+>    --enable rhel-9-for-x86_64-appstream-rpms \
+>    --enable rhel-9-for-x86_64-supplementary-rpms
+```
+5️⃣ Update System
+```
+sudo dnf clean all
+sudo dnf update -y
+sudo reboot
+```
+
+
+
+sudo dnf install -y \
+  qemu-kvm \
+  libvirt \
+  virt-install \
+  virt-manager \
+  bridge-utils \
+  libvirt-daemon-config-network \
+  libvirt-daemon-kvm
+
+**Note: ** - Packages can be installed individually.
+
+Enable and start libvirtd:
+```
+$ sudo systemctl enable --now libvirtd
+```
+Verify:
+```
+sudo virsh list --all
+```
+2. Enable and start libvirt
+```
+$ sudo systemctl enable --now libvirtd
+$ sudo systemctl status libvirtd
+```
+3. Add your user to libvirt & kvm group 
+```
+$ sudo usermod -aG libvirt $(whoami)
+$ sudo usermod -aG kvm $(whoami)
+$ newgrp libvirt
+$ newgrp kvm
+$ groups
+
+```
+4. Verify KVM is active
+sudo libvirt list --all
+
+> Even if there's no output, kvm is active
+> You’ll need to log out and back in for group changes to apply.
+
+You now have a fully registered and patched RHEL 9.x host.
+
+
+
+# 🔥 4. Secure libvirt UNIX Socket Access (Optional)
+
+Lock down permissions in /etc/libvirt/libvirtd.conf:
+```
+sudo vi /etc/libvirt/libvirtd.conf
+```
+
+Ensure:
+
+```
+unix_sock_group = "libvirt"
+unix_sock_ro_perms = "0775"
+unix_sock_rw_perms = "0770"
+auth_unix_ro = "none"
+auth_unix_rw = "none"
+```
+
+Restart:
+
+```
+sudo systemctl restart libvirtd
+```
+
+
+
+# 🛡️ 5. Enable IOMMU for PCI Passthrough (Optional)
+
+Edit GRUB config:
+
+sudo vi /etc/default/grub
+
+Append to GRUB_CMDLINE_LINUX:
+
+For Intel:
+
+intel_iommu=on
+
+For AMD:
+
+amd_iommu=on
+
+Then regenerate and reboot:
+
+sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+sudo reboot
+
+
+
+
+# 🔐 6. Sysctl Tuning for Host and VMs
+
+Create:
+```
+$ sudo vi /etc/sysctl.d/99-kvm-host.conf
+```
+
+Add these lines to your config file:
+```
+# Security: prevent SYN flood DoS from VMs
+net.ipv4.tcp_syncookies = 1
+
+# IPv4 forwarding for bridge networks
+net.ipv4.ip_forward = 1
+
+# Disable source routing
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+
+# Protect against spoofed packets
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+
+# Martian packets logging
+net.ipv4.conf.all.log_martians = 1
+```
+
+Apply:
+```
+$ sudo sysctl --system
+```
+> This will update the sysctl configuration
+
+
+
+
+
+
+
+
+# 🔐 7. Disk Image Hardening for VMs
+
+When storing VM disk images:
+
+    - Use a dedicated partition or LVM volume (e.g. /var/lib/libvirt/images)
+
+   -  Set strict permissions:
+```
+$ sudo chown root:kvm /var/lib/libvirt/images
+$ sudo chmod 770 /var/lib/libvirt/images
+```
+
+You can optionally mount images from encrypted volumes or ZFS datasets if security requires.
+
+
+
+
+
+# 🔐 8. Firewall Considerations for libvirt
+
+Libvirt uses its own firewall rules with nwfilter.
+
+Default networks (NATed) are isolated, but if you use bridged mode:
+
+```
+$ sudo firewall-cmd --permanent --add-forward-port=port=22:proto=tcp:toaddr=<vm_ip>:toport=22
+$ sudo firewall-cmd --reload
+```
+> make sure to replace <vm_ip> with your system or VM is address
+> We'll expand on this when setting up bridged interfaces.
+
+
+
+
+# 📜 9. Enable Logging & Monitoring
+
+Manually install the EPEL release RPM
+```
+$ sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+```
+ Refresh metadata and install packages
+```
+sudo dnf clean all
+sudo dnf makecache
+
+sudo dnf install aide 
+sudo dnf install fail2ban 
+sudo dnf install lynis
+sudo aide --init
+sudo mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+sudo systemctl enable --now fail2ban
+sudo lynis audit system
+
+
+
+
+
+
+# 🧯 10. Snapshot or Document the System
+
+Now that your system is hardened and configured:
+
+    Take a disk image (Clonezilla, etc.)
+    Or save a system manifest:
+```
+$ rpm -qa > ~/installed-packages.txt
+```
+
+
+
+
+
+## Summary
+✅ Your Host is Now Hardened for Nested VMs
+
+You now have:
+
+    Secure kernel and SELinux
+    SSH locked down
+    libvirt / KVM installed and secured
+    IOMMU, bridged networking, and logging ready
+
+
+
+
+
+_____________________________________________________________Figure Out Where This info Needs to be Nested-______________________________
+If bridge-utils is deprecated on your distro....
+
+    `brctl` (from bridge-utils) was the old tool for managing bridges
+
+    Modern RHEL uses NetworkManager with the `nmcli` and `nmtui` commands for bridge creation
+
+    The kernel bridging functions are still there — only the legacy CLI is gone
+
+What to do instead
+
+To create a bridge for KVM nested virtualization:
+1️⃣ Check if bridge kernel module is loaded
+
+lsmod | grep bridge
+
+If empty:
+
+sudo modprobe bridge
+
+2️⃣ Install virtualization packages
+
+sudo dnf install -y @virtualization
+sudo systemctl enable --now libvirtd
+
+3️⃣ Create a bridge via nmcli
+
+Example — replace enp3s0 with your actual NIC:
+
+sudo nmcli connection add type bridge ifname br0 con-name br0
+sudo nmcli connection add type bridge-slave ifname enp3s0 master br0
+sudo nmcli connection modify br0 ipv4.method auto ipv6.method ignore
+sudo nmcli connection up br0
+
+4️⃣ Verify
+
+ip addr show br0
+
+You should see a bridge interface with an IP address.
+
+If you really want the old brctl commands for testing, you can pull bridge-utils from EPEL 9, but for a hardened, future-proof RHEL 9 setup, we stick with nmcli and ip commands.
+
+_________________________________________________________________________END____________________________________________________________________________
