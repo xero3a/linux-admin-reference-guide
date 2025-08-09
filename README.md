@@ -50,7 +50,7 @@ document real-world tasks for my Linux career portfolio.
                from Fedora's servers
 
 **Note:**   ---   These problems were solved step-by-step through documentation review, testing fixes, and
-                     understanding RHEL's enterprise content model -- all part of what makes the work rewarding.
+                     understanding RHEL's enterprise content model -- all part of what makes the work.
 
 ---
 
