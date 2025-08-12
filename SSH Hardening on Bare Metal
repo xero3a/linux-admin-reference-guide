@@ -1,4 +1,4 @@
-1. SSH Hardening on Bare Metal
+SSH Hardening on Bare Metal
 Overview
 You’re working directly on the hardware and want to secure SSH access by moving from password to key-based authentication, minimizing lockout risks.
 
@@ -14,7 +14,7 @@ Keep a local terminal session open to avoid being locked out.
 
 Generate and install SSH keys before disabling password login.
 
-# SSH Hardening on Bare Metal
+# 1. SSH Hardening on Bare Metal
 
 Given you're on direct hardware, here's how to move forward safely:
 
