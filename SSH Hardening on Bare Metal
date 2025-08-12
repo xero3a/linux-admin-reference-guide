@@ -1,4 +1,4 @@
-SSH Hardening on Bare Metal
+# SSH Hardening on Bare Metal
 Overview
 You’re working directly on the hardware and want to secure SSH access by moving from password to key-based authentication, minimizing lockout risks.
 
