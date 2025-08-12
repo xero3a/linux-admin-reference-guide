@@ -1,73 +1,95 @@
-SSH Hardening on Bare Metal
+# SSH Hardening on Bare Metal
+Overview
+You’re working directly on the hardware and want to secure SSH access by moving from password to key-based authentication, minimizing lockout risks.
+
+Pre-checks
+You are logged into a local terminal on the RHEL machine.
+
+Password-based SSH is currently enabled.
+
+You are not using SSH keys yet.
+
+Recommendations Before Disabling Password Authentication
+Keep a local terminal session open to avoid being locked out.
+
+Generate and install SSH keys before disabling password login.
+
+# SSH Hardening on Bare Metal
 
 Given you're on direct hardware, here's how to move forward safely:
-✅ You’re Currently:
 
-    Logged into a local terminal (TTY or graphical) on the RHEL machine
+## You’re Currently:
 
-    Preparing to configure key-based SSH for remote access
+- Logged into a local terminal (TTY or graphical) on the RHEL machine  
+- Preparing to configure key-based SSH for remote access  
+- Not using `.ssh` keys yet  
 
-    Not using .ssh keys yet
+---
 
-🛡️ Recommendation Before Disabling PasswordAuthentication:
+## Recommendation Before Disabling PasswordAuthentication
 
-    Keep a working terminal session open locally.
-    So if something goes wrong during SSH config, you’re not locked out.
+- Keep a working terminal session open locally so if something goes wrong during SSH config, you’re not locked out.  
+- Generate and install the SSH key on the RHEL machine before you disable password login.  
 
-    Generate and install the SSH key on the RHEL machine before you disable password login.
+---
 
-🧰 Local Key Generation on the RHEL Host (If You’ll SSH from Another Box)
+## Local Key Generation on the RHEL Host  
+*(If you’ll SSH from another box)*
 
 - From your client system (the one you’ll connect from remotely):
+
 ```
 $ ssh-keygen -t ed25519 -C "sysadmin@rhel9"
 $ ssh-copy-id -i ~/.ssh/id_ed25519.pub sysadmin@<RHEL_IP>
 ```
->/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/home/user/.ssh/id_ed25519.pub"
->The authenticity of host 'localhost (::1)' can't be established.
->ED25519 key fingerprint is {xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}.
->This key is not known by any other names
->Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
->/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
->/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
->user@localhost's password: 
+You should see output similar to:
+```
+/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/home/user/.ssh/id_ed25519.pub"
+The authenticity of host 'localhost (::1)' can't be established.
+ED25519 key fingerprint is {xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}.
+This key is not known by any other names
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+user@localhost's password: 
 
 Number of key(s) added: 1
+```
+- Now try logging into the machine with:
+```
+$ ssh user@localhost
+```
+Check that only the keys you intended were added.
 
-- Now try logging into the machine, with:   "ssh 'user@localhost'"
-and check to make sure that only the key(s) you wanted were added.
+- Test remote login with:
 
-- Test it:
+$ssh -i ~/.ssh/id_ed25519 user@<RHEL_ip-or-hostname>
+> If it works, you’re good to disable password login in sshd_config.
 
-$ ssh -i ~/.ssh/id_ed25519 user@<RHEL_ip-or-hostname>
-
-✅ If it works, you’re good to disable password login in sshd_config.
-🖥️ SSH to Yourself (Test Local SSH Access)
-
+- SSH to Yourself (Test Local SSH Access)
 You can even test locally:
 ```
 $ ssh user@localhost
+```
+Expected prompts:
 ```
 The authenticity of host 'localhost (::1)' can't be established.
 ED25519 key fingerprint is {xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
 This key is not known by any other names
 Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
-**Note:** - if you only type single letters, this message will appear - "Please type 'yes', 'no' or the fingerprint:"
 Warning: Permanently added 'localhost' (ED25519) to the list of known hosts.
-Activate the web console with: systemctl enable --now cockpit.socket
-
-Register this system with Red Hat Insights: insights-client --register
-Create an account or view all your systems at https://red.ht/insights-dashboard
-Last login: Thu Aug  7 15:04:19 2025
+Note: If you type only single letters instead of "yes" or "no", the prompt will repeat with:
+Please type 'yes', 'no' or the fingerprint:
 ```
+> This ensures OpenSSH is working before you disable password authentication.
 
-- This ensures OpenSSH is working before you disable password authentication.
+- Finalize Hardened SSHD Config
 
-⚙️ Then Finalize Hardened SSHD Config
+Edit the SSH daemon configuration:
 ```
 $ sudo vi /etc/ssh/sshd_config
 ```
-Recommended safe config for direct installs:
+- Recommended safe config for direct installs:
 ```
 Port 22
 PermitRootLogin no
@@ -80,7 +102,7 @@ X11Forwarding no
 ClientAliveInterval 300
 ClientAliveCountMax 2
 ```
-- Then:
+- Save and exit, then restart sshd:
 ```
 $ sudo systemctl restart sshd
 ```
@@ -88,11 +110,17 @@ $ sudo systemctl restart sshd
 
 
 
-🔐 Hardening for Host Security
 
-    Limit attack surface (kernel, services, filesystem)
-    Enforce SELinux, firewall, auditing
-    Tweak sysctl for host and VM network safety
+
+
+
+
+
+
+
+
+
+
 
 ⚙️ Enable Secure Nested Virtualization
 
