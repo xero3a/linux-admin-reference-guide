@@ -1,4 +1,4 @@
-# SSH Hardening on Bare Metal
+1. SSH Hardening on Bare Metal
 Overview
 You’re working directly on the hardware and want to secure SSH access by moving from password to key-based authentication, minimizing lockout risks.
 
@@ -109,110 +109,102 @@ $ sudo systemctl restart sshd
 
 
 
+# 2. Enable Secure Nested Virtualization
 
+- Verify nested support in CPU/Kernel  
+- Install KVM / libvirt stack  
+- Secure libvirt, bridge interfaces, permissions  
+- Set up VM disk protections and separation  
 
+---
 
+## Step-by-Step: Hardened Nested Virtualization Host on RHEL 9.4
 
+### 2.1 Verify Nested Virtualization Support
 
+For AMD CPUs:
 
-
-
-
-
-
-
-
-⚙️ Enable Secure Nested Virtualization
-
-    Verify nested support in CPU/Kernel
-    Install KVM / libvirt stack
-    Secure libvirt, bridge interfaces, permissions
-    Set up VM disk protections and separation
-
-🔧 Step-by-Step: Hardened Nested Virtualization Host on RHEL 9.4
-
-- Verify Nested Virtualization Support
-
-For AMD:
 ```
 $ cat /sys/module/kvm_amd/parameters/nested
-1
 ```
-For Intel:
+Expected output:
+
+For Intel CPUs:
 ```
 $ cat /sys/module/kvm_intel/parameters/nested
 ```
-- If it says N or nothing is returned, enable it.
+If the output is N or nothing is returned, nested virtualization is not enabled and needs to be enabled.
 
-
-
-
-
-# 1.  To enable nested virtualization (permanently):
-
-AMD:
+2.2 Enable Nested Virtualization Permanently
+For AMD:
 ```
 $ echo "options kvm_amd nested=1" | sudo tee /etc/modprobe.d/kvm-amd.conf
 ```
-Intel:
+For Intel:
 ```
 $ echo "options kvm_intel nested=1" | sudo tee /etc/modprobe.d/kvm-intel.conf
 ```
-- Then:
+Then reload the kernel modules:
 ```
 $ sudo modprobe -r kvm_amd kvm_intel
-$ sudo modprobe kvm_amd    # or kvm_intel
+$ sudo modprobe kvm_amd    # or sudo modprobe kvm_intel
 ```
 
-# ✅ 2. Install Virtualization Tools (KVM, Libvirt)
 
-Register your system with subscription-manager
-> You'll need to register your system before you can install corresponding packages and tools
 
-- Register the System
 
-You’ll need your Red Hat Customer Portal credentials:
+# ✅ 3. Install Virtualization Tools (KVM, Libvirt)
+
+Register your system with `subscription-manager`  
+> You'll need to register your system before you can install corresponding packages and tools.
+
+---
+
+### Register the System
+
+- You’ll need your Red Hat Customer Portal credentials:
+
 ```
 $ sudo subscription-manager register
 ```
-- It will prompt:
-```
-$ Username: <Your_RH_Username>
-$ Password: <Your_RH_Password>
-```
-- You should see:
-```
-The system has been registered with ID:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+- It will prompt for:
+
+Username: <Your_RH_Username>
+Password: <Your_RH_Password>
+
+- You should see a confirmation like:
+
+The system has been registered with ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 The registered system name is: localhost.localdomain
-```
-> **Note: ** -  if your subscription-manager status says 
-```
-$ Overall Status: Disabled, that means the host isn’t activated yet, even though your Red Hat account may have Simple Content Access enabled.
-```
+**Note:** If your subscription-manager status shows:
 
-- We’ll need to:
-- Attempt to Re-register the System
+Overall Status: Disabled
+
+- it means the host isn’t activated yet, even if your Red Hat account has Simple Content Access enabled.
+
+- Re-register the System (if needed)
 ```
 $ sudo subscription-manager register
 ```
-- Enter your Red Hat Customer Portal username & password.
+Enter your Red Hat Customer Portal username & password.
 
-- If you get an “Account has SCA enabled” message, that’s good — it means you won’t have to pick a pool.
+If you get an “Account has SCA enabled” message, that’s good — it means you won’t have to pick a pool.
 
 - Refresh the Subscription
 ```
 $ sudo subscription-manager refresh
 ```
-- Verify Status
+
+Verify Status
 ```
 $ sudo subscription-manager status
 ```
+
 Expected:
 
 Overall Status: Current
+Potential output if disabled:
 
-Potential:
-```
 +-------------------------------------------+
    System Status Details
 +-------------------------------------------+
@@ -220,25 +212,23 @@ Overall Status: Disabled
 Content Access Mode is set to Simple Content Access. This host has access to content, regardless of subscription status.
 
 System Purpose Status: Disabled
-
-```
-- Attempt to Refresh
+Attempt to Refresh Again (if needed)
 ```
 $ sudo subscription-manager refresh
-All local data refreshed
 $ sudo subscription-manager status
 ```
-***Note: ** - If the same error occurs, you can still move forward by enabling your repos.
 
+**Note:** If the same error occurs, you can still proceed by enabling your repos.
 
-- Enable Required Repos
+- Enable Required Repositories
 ```
 $ sudo subscription-manager repos \
->    --enable rhel-9-for-x86_64-baseos-rpms \
->    --enable rhel-9-for-x86_64-appstream-rpms \
->    --enable rhel-9-for-x86_64-supplementary-rpms
+   --enable rhel-9-for-x86_64-baseos-rpms \
+   --enable rhel-9-for-x86_64-appstream-rpms \
+   --enable rhel-9-for-x86_64-supplementary-rpms
 ```
-- Update System
+
+- Update System and Reboot
 ```
 $ sudo dnf clean all
 $ sudo dnf update -y
@@ -246,7 +236,14 @@ $ sudo reboot
 ```
 
 
-- Install Virtualization Packages
+
+
+# ✅ 4. Install Virtualization Packages and Configure Networking
+
+---
+
+### Install Virtualization Packages
+
 ```
 $ sudo dnf install -y \
   qemu-kvm \
@@ -257,22 +254,24 @@ $ sudo dnf install -y \
   libvirt-daemon-config-network \
   libvirt-daemon-kvm
 ```
-**Note: ** - Packages can be installed individually.
+**Note:** Packages can be installed individually if preferred.
 
-- Enable and start libvirtd:
+- Enable and Start libvirtd
 ```
 $ sudo systemctl enable --now libvirtd
 ```
-- Verify:
+
+- Verify libvirt is running:
 ```
 $ sudo virsh list --all
 ```
-- Enable and start libvirt
+
+- Check status:
 ```
-$ sudo systemctl enable --now libvirtd
 $ sudo systemctl status libvirtd
 ```
-- Add your user to libvirt & kvm group 
+
+- Add User to libvirt & kvm Groups
 ```
 $ sudo usermod -aG libvirt $(whoami)
 $ sudo usermod -aG kvm $(whoami)
@@ -280,69 +279,76 @@ $ newgrp libvirt
 $ newgrp kvm
 $ groups
 ```
----
-If bridge-utils is deprecated on your distro....
+**Note:** You’ll need to log out and back in for group changes to take effect.
 
-    `brctl` (from bridge-utils) was the old tool for managing bridges
+> If bridge-utils Is Deprecated on Your Distro
+> brctl (from bridge-utils) was the old tool for managing bridges.
 
-    Modern RHEL uses NetworkManager with the `nmcli` and `nmtui` commands for bridge creation
+> Modern RHEL uses NetworkManager with nmcli and nmtui commands for bridge creation.
 
-    The kernel bridging functions are still there — only the legacy CLI is gone
+> Kernel bridging functionality remains; only the legacy CLI is deprecated.
 
-What to do instead:
+- Creating a Bridge for KVM Nested Virtualization Using nmcli
 
-To create a bridge for KVM nested virtualization:
-1️⃣ Check if bridge kernel module is loaded
+a. Check if bridge kernel module is loaded:
 ```
 $ lsmod | grep bridge
 ```
-If empty:
+If no output:
 ```
 $ sudo modprobe bridge
 ```
-2️⃣ Install virtualization packages
+
+b. Install virtualization packages (alternative group install):
 ```
 $ sudo dnf install @virtualization
 $ sudo systemctl enable --now libvirtd
 ```
-3️⃣ Create a bridge via nmcli
 
-Example — replace enp3s0 with your actual NIC:
+c. Create a bridge via nmcli
+> (Replace enp3s0 with your actual network interface name)
 ```
 $ sudo nmcli connection add type bridge ifname br0 con-name br0
 $ sudo nmcli connection add type bridge-slave ifname enp3s0 master br0
 $ sudo nmcli connection modify br0 ipv4.method auto ipv6.method ignore
 $ sudo nmcli connection up br0
 ```
-4️⃣ Verify
+
+d. Verify bridge interface:
 ```
 $ ip addr show br0
 ```
-You should see a bridge interface with an IP address.
+You should see the bridge interface with an assigned IP address.
 
-If you really want the old brctl commands for testing, you can pull bridge-utils from EPEL 9, but for a hardened, future-proof RHEL 9 setup, we stick with nmcli and ip commands.
+> If you want the legacy brctl commands for testing, you can install bridge-utils from EPEL 9, but for hardened, future-proof RHEL 9 setups, use `nmcli` and `ip` commands instead.
+
+e. Verify KVM is Active
+```
+$ sudo virsh list --all
+```
+> Even if no domains are listed, KVM is active.
+
+You now have a fully registered and patched RHEL 9.x host ready for virtualization.
+
+
+
+
+
+
+# 🔥 5. Secure libvirt UNIX Socket Access (Optional)
+
+To restrict access to `libvirt` control sockets and harden the virtualization host:
+
 ---
 
-4. Verify KVM is active
-```
-$ sudo libvirt list --all
-```
-> Even if there's no output, kvm is active
-> You’ll need to log out and back in for group changes to apply.
+### Lock Down UNIX Socket Permissions
 
-You now have a fully registered and patched RHEL 9.x host.
+Edit the libvirt daemon config file:
 
-
-
-# 🔥 4. Secure libvirt UNIX Socket Access (Optional)
-
-- Lock down permissions in /etc/libvirt/libvirtd.conf:
 ```
 $ sudo vi /etc/libvirt/libvirtd.conf
 ```
-
-- Ensure the information is present:
-
+- Ensure the following lines are present (or uncommented and set accordingly):
 ```
 unix_sock_group = "libvirt"
 unix_sock_ro_perms = "0775"
@@ -351,46 +357,69 @@ auth_unix_ro = "none"
 auth_unix_rw = "none"
 ```
 
-- Restart:
-
+Restart libvirtd to Apply Changes
 ```
 $ sudo systemctl restart libvirtd
 ```
+> This configuration ensures that only users in the libvirt group can access and control the libvirt UNIX socket, enhancing access control.
 
 
 
-# 🛡️ 5. Enable IOMMU for PCI Passthrough (Optional)
 
-- Edit GRUB config:
+
+
+
+# 🛡️ 6. Enable IOMMU for PCI Passthrough (Optional)
+
+Enabling IOMMU allows direct device passthrough to virtual machines — useful for scenarios like GPU passthrough.
+
+---
+
+### Edit GRUB Configuration
+
+- Open the GRUB config:
+
 ```
 $ sudo vi /etc/default/grub
 ```
-- Append to GRUB_CMDLINE_LINUX:
 
-For Intel:
-```
+- Append the following to the GRUB_CMDLINE_LINUX line:
+
+For Intel CPUs:
+
 intel_iommu=on
-```
-For AMD:
-```
+
+For AMD CPUs:
+
 amd_iommu=on
-```
-- Then regenerate and reboot:
+
+- Regenerate GRUB and Reboot
+
+- Apply the changes:
 ```
 $ sudo grub2-mkconfig -o /boot/grub2/grub.cfg
 $ sudo reboot
 ```
+Once rebooted, IOMMU will be active and ready for passthrough configurations.
 
 
 
-# 🔐 6. Sysctl Tuning for Host and VMs
 
-- Create:
+
+
+
+# 🔐 7. Sysctl Tuning for Host and VMs
+
+Tune kernel parameters to improve security and ensure safe networking behavior for host and virtual machines.
+
+---
+
+### Create a Custom Sysctl Configuration File
+
 ```
 $ sudo vi /etc/sysctl.d/99-kvm-host.conf
-```
 
-- Add these lines to your config file:
+- Add the Following Settings
 ```
 # Security: prevent SYN flood DoS from VMs
 net.ipv4.tcp_syncookies = 1
@@ -410,11 +439,11 @@ net.ipv4.conf.default.rp_filter = 1
 net.ipv4.conf.all.log_martians = 1
 ```
 
-- Apply:
+- Apply the Settings
 ```
 $ sudo sysctl --system
 ```
-> This will update the sysctl configuration
+> This command reloads all sysctl configuration files and applies the changes immediately.
 
 
 
@@ -422,47 +451,71 @@ $ sudo sysctl --system
 
 
 
+# 🔐 8. Disk Image Hardening for VMs
 
-# 🔐 7. Disk Image Hardening for VMs
+Harden your virtual machine disk storage to improve isolation and security.
 
-When storing VM disk images:
+---
 
-    - Use a dedicated partition or LVM volume (e.g. /var/lib/libvirt/images)
-   -  Set strict permissions:
+### Recommended Practices
+
+- Use a **dedicated partition** or **LVM volume** for storing VM disk images, e.g.:
+
+$ /var/lib/libvirt/images/
+
+
+- Set **strict permissions** on the directory:
+
 ```
 $ sudo chown root:kvm /var/lib/libvirt/images
 $ sudo chmod 770 /var/lib/libvirt/images
 ```
-
-**Note:** - You can optionally mount images from encrypted volumes or ZFS datasets if security requires.
-
+**Note:** You can optionally mount VM storage from encrypted volumes or ZFS datasets if higher security is required.
 
 
 
 
-# 🔐 8. Firewall Considerations for libvirt
 
-- Libvirt uses its own firewall rules with nwfilter.
 
-Default networks (NATed) are isolated, but if you use bridged mode:
+
+# 🔐 9. Firewall Considerations for libvirt
+
+Libvirt manages its own firewall rules through `nwfilter`. By default, NATed virtual networks are isolated from the host network.
+
+---
+
+### When Using Bridged Networking
+
+If you're using **bridged mode** (instead of NAT), you'll need to manually configure your host firewall to forward traffic to your VMs.
+
+#### Example: Forward SSH Traffic (Port 22) to a VM
 
 ```
 $ sudo firewall-cmd --permanent --add-forward-port=port=22:proto=tcp:toaddr=<vm_ip>:toport=22
 $ sudo firewall-cmd --reload
 ```
-> make sure to replace <vm_ip> with your system or VM is address
-> We'll expand on this when setting up bridged interfaces.
+> Replace <vm_ip> with the actual IP address of your virtual machine.
+> We’ll expand this further when configuring bridged interfaces.
 
 
 
 
-# 📜 9. Enable Logging & Monitoring
 
-- Manually install the EPEL release RPM
+
+
+# 📜 10. Enable Logging & Monitoring
+
+Enable host-based intrusion detection and basic monitoring tools to strengthen security visibility on your RHEL virtualization host.
+
+---
+
+### Step 1: Install the EPEL Repository
+
 ```
 $ sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
 ```
-- Refresh metadata and install packages
+
+Step 2: Refresh Metadata & Install Security Tools
 ```
 $ sudo dnf clean all
 $ sudo dnf makecache
@@ -470,36 +523,69 @@ $ sudo dnf makecache
 $ sudo dnf install aide 
 $ sudo dnf install fail2ban 
 $ sudo dnf install lynis
+```
+
+Step 3: Initialize & Configure AIDE (File Integrity Monitoring)
+```
 $ sudo aide --init
 $ sudo mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+```
+
+Step 4: Enable & Start Fail2Ban
+```
 $ sudo systemctl enable --now fail2ban
+```
+
+Step 5: Run Lynis Audit
+```
 $ sudo lynis audit system
+> This provides a security baseline report of your system with recommendations for hardening.
 ```
 
 
 
 
 
-# 🧯 10. Snapshot or Document the System
 
-Now that your system is hardened and configured:
 
-    Take a disk image (Clonezilla, etc.)
-    Or save a system manifest:
+# 🧯 11. Snapshot or Document the System
+
+Now that your system is fully hardened and configured, it’s a good time to back it up or document its current state.
+
+---
+
+### Recommended Actions
+
+- ✅ **Take a Full Disk Image**  
+  Use tools like **Clonezilla**, or create a VM snapshot (if applicable) to preserve the current state.
+
+- ✅ **Export Installed Package List**  
+  This allows you to recreate or audit your setup later:
+
 ```
 $ rpm -qa > ~/installed-packages.txt
 ```
+- Store the manifest in a secure location (e.g. backup server, encrypted drive, or Git with sensitive data excluded).
 
 
 
 
 
-## Summary
-✅ Your Host is Now Hardened for Nested VMs
+
+
+
+## ✅ Summary: Your RHEL Host Is Now Hardened for Secure Virtualization
 
 You now have:
 
-    Secure kernel and SELinux
-    SSH locked down
-    libvirt / KVM installed and secured
-    IOMMU, bridged networking, and logging ready
+- 🔐 SSH hardened with key-based authentication only
+- 📦 System registered with Red Hat and required repos enabled
+- 🧰 KVM, libvirt, and virtualization tools fully installed
+- 🛡️ SELinux, firewalld, and auditing enforced
+- 🧬 Nested virtualization and IOMMU enabled for passthrough
+- 🌉 Bridged networking configured using `nmcli`
+- 🔧 Sysctl tuned for network and kernel security
+- 🗂️ VM disk storage isolated with strict permissions
+- 🔌 libvirt UNIX socket permissions locked down
+- 🔥 Logging and monitoring tools (AIDE, Fail2Ban, Lynis) configured
+- 📸 Snapshot or system manifest created for rollback or auditing
